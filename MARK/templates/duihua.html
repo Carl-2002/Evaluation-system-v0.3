@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>单轮对话</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column; /* 垂直排列 */
+            height: 100vh;
+            background-color: #f4f4f9;
+        }
+
+        #sidebar {
+            width: 250px;
+            background-color: #f4f4f4;
+            padding: 20px;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+        }
+
+        #content {
+            flex: 1; /* 占据剩余空间 */
+            padding: 5px;
+            display: flex;
+            flex-direction: column; /* 内容垂直排列 */
+            align-items: center; /* 水平居中 */
+            justify-content: flex-start; /* 从顶部开始排列 */
+            margin-top: 60px; 
+        }
+
+        /* 左边容器 */
+        #left-container {
+            height: 100%;
+            width: 45%; /* 左边容器宽度 */
+            padding: 10px;
+            overflow-y: auto; /* 垂直滚动条 */
+        }
+
+        /* 右边容器 */
+        #right-container {
+            flex: 1; /* 右边容器占剩余空间 */
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* 右边的大框 */
+        #output-area {
+            width: 100%;
+            height: 100%; /* 大框占右边容器的 80% */
+            max-height: 85vh;
+            background-color: #f9f9f9;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            padding: 5px;
+            overflow-y: auto; /* 垂直滚动条 */
+            font-family: Arial, sans-serif; /* 设置字体 */
+            font-size: 14px; /* 设置字体大小 */
+            line-height: 1.2; /* 设置行高 */
+        }
+
+        .output-item p {
+            white-space: pre-wrap; /* 保留原始换行格式 */
+        }
+
+        #model-select {
+            height: 45px; /* 修改为你想要的高度 */
+            margin: 5px 0;
+            padding: 10px;
+            font-size: 18px;
+            width: 99%; /* 输入框宽度自适应 */
+            border: 1px solid #ccc;
+            background-color: #f9f9f9;
+            border-radius: 4px;
+        }
+
+        #system-prompt {
+            height: 240px;
+            background-color: #f9f9f9;
+        }
+
+        #user-input {
+            height: 240px;
+            background-color: #f9f9f9;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 30px;
+            color: #333;
+            text-align: center; /* 居中对齐 */
+            padding: 0px; /* 增加上下内边距 */
+            width: 100%; /* 宽度占满容器 */
+        }
+
+        select, textarea {
+            height: 235px;
+            margin: 5px 0;
+            padding: 5px;
+            font-size: 18px;
+            width: 99%; /* 输入框宽度自适应 */
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        button {
+            background-color: #115bab;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.3s ease;
+            padding: 15px 30px;
+            font-size: 18px;
+            margin: 10px;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+            transform: scale(1.05);
+        }
+
+        button.disabled {
+            background-color: #84aada; /* 禁用状态下的背景颜色 */
+            cursor: not-allowed; /* 禁用状态下的鼠标指针 */
+            transform: none; /* 移除放大效果 */
+        }
+
+        .button-container {
+            display: flex;
+            justify-content: center;
+            margin: 10px;
+        }
+    </style>
+</head>
+<body>
+    {% include 'sidebar.html' %}
+    <div id="content">
+        <h1>单轮对话</h1> <!-- 在 content 容器中居中显示 -->
+        <div style="display: flex; flex-direction: row; width: 100%">
+            <!-- 左边容器 -->
+            <div id="left-container">
+                <div class="input-group">
+                    <label for="model-select">选择模型</label>
+                    <select id="model-select">
+                        <option value="">选择模型</option>
+                        <!-- 模型选项将通过 JavaScript 动态填充 -->
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label for="system-prompt">系统提示词</label>
+                    <textarea id="system-prompt"></textarea>
+                </div>
+                <div class="input-group">
+                    <label for="user-input">用户输入</label>
+                    <textarea id="user-input"></textarea>
+                </div>
+                <div class="button-group">
+                    <button id="submit-btn">提交内容</button>
+                    <button id="clear-btn">清空内容</button>
+                </div>
+            </div>
+
+            <!-- 右边容器 -->
+            <div id="right-container">
+                <div id="output-area"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const modelSelect = document.getElementById('model-select');
+        const systemPromptInput = document.getElementById('system-prompt');
+        const userInputInput = document.getElementById('user-input');
+        const outputArea = document.getElementById('output-area');
+        const submitBtn = document.getElementById('submit-btn');
+        const clearBtn = document.getElementById('clear-btn');
+
+        // 动态填充模型选择下拉菜单
+        fetch('/get_models')
+            .then(response => response.json())
+            .then(models => {
+                models.forEach(model => {
+                    const option = document.createElement('option');
+                    option.value = model;
+                    option.textContent = model;
+                    modelSelect.appendChild(option);
+                });
+            })
+            .catch(error => console.error('无法获取模型列表:', error));
+
+        submitBtn.addEventListener('click', () => {
+            const selectedModel = modelSelect.value;
+            const systemPrompt = systemPromptInput.value;
+            const userInput = userInputInput.value;
+
+            if (selectedModel.trim() === '' || userInput.trim() === '' || systemPrompt.trim() === '') {
+                alert('请输入所有内容!');
+                return;
+            }
+
+            // 禁用提交按钮
+            submitBtn.classList.add('disabled');
+            submitBtn.disabled = true;
+
+            fetch('/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    query: userInput,
+                    reference: systemPrompt,
+                    dropdown: selectedModel,
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                const userInputWithBr = userInput.replace(/\n/g, '<br>');
+                const resultWithBr = data.result.replace(/\n/g, '<br>');
+                const reasoningWithBr = data.reasoning.replace(/\n/g, '<br>');
+                
+                const outputText = `<div class="output-item">
+                                        <p><strong>输入：</strong>${userInput}</p>
+                                        <p><strong>回答：</strong>${data.result}</p>
+                                        <p><strong>思考：</strong>${data.reasoning}</p>
+                                    </div>`;
+                outputArea.innerHTML += outputText;
+            })
+            .catch(error => console.error('请求失败:', error))
+            .finally(() => {
+                // 无论请求成功还是失败，都启用提交按钮
+                submitBtn.classList.remove('disabled');
+                submitBtn.disabled = false;
+            });
+        });
+
+        clearBtn.addEventListener('click', () => {
+            outputArea.innerHTML = '';
+            systemPromptInput.value = '';
+            userInputInput.value = '';
+        });
+    </script>
+</body>
+</html>

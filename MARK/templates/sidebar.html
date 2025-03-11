@@ -1,0 +1,43 @@
+<nav class="navbar">
+    <a href="/" class="nav-link btn btn-primary">首页</a>
+    <a href="/duihua" class="nav-link btn btn-primary">对话</a>
+    <a href="/tishi" class="nav-link btn btn-primary">提示词</a>
+    <a href="/file" class="nav-link btn btn-primary">上传文件</a>
+    <a href="/answer" class="nav-link btn btn-primary">模型回答</a>
+    <a href="/answer_list" class="nav-link btn btn-primary">回答结果</a>
+    <a href="/evaluation" class="nav-link btn btn-primary">模型评测</a>
+    <a href="/result" class="nav-link btn btn-primary">评测结果</a>
+</nav>
+
+<style>
+    .navbar {
+        background-color: #115bab; /* 背景颜色改为蓝色 */
+        overflow: hidden;
+        display: flex;
+        justify-content: center; /* 按钮居中 */
+        align-items: center;
+        padding: 2px;
+        width: 100%; /* 占据整个宽度 */
+        box-sizing: border-box; /* 保证 padding 不影响宽度 */
+        position: fixed; /* 固定位置 */
+        top: 0; /* 紧贴顶部 */
+        z-index: 1000; /* 确保 在页面最顶部 */
+    }
+    .nav-link {
+        color: white;
+        text-align: center;
+        padding: 14px 26px; /* 增加按钮的左右内边距 */
+        text-decoration: none;
+        border-radius: 15px; /* 增加圆角 */
+        font-size: 18px;
+        margin: 0 18px; /* 增加按钮之间的间距 */
+        transition: background-color 0.3s ease;
+    }
+    .nav-link:hover {
+        background-color: #0c4e96; /* 鼠标悬停时的背景颜色也改为蓝色 */
+    }
+    .btn-primary {
+        background-color: #115bab; /* 按钮背景颜色改为蓝色 */
+        border-color: #115bab; /* 按钮边框颜色改为蓝色 */
+    }
+</style>

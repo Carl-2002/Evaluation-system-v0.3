@@ -1,0 +1,5 @@
+KIMI
+QWEN
+DEEPSEEK
+deepseek-v3
+deepseek-r1

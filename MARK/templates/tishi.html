@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>提示文件编辑</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: row;
+            height: 100vh;
+            background-color: #f4f4f9;
+        }
+
+        #sidebar {
+            width: 250px;
+            background-color: #f4f4f4;
+            padding: 20px;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+        }
+
+        #content {
+            flex: 1;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top:40px;
+        }
+
+        h1 {
+            margin-bottom: 5px; /* 调整标题与导航栏的距离 */
+            font-size: 30px; /* 调整标题字体大小 */
+            color: #333; /* 调整标题颜色 */
+        }
+
+        select, textarea {
+            margin: 10px 0;
+            padding: 15px;
+            font-size: 18px; /* 调整输入框字体大小 */
+            width: 15%;
+            max-width: 800px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        textarea {
+            height: 60%; /* 增大文件预览框 */
+            width: 80%;
+            resize: both;
+        }
+
+        button {
+            background-color: #115bab;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.3s ease;
+            padding: 15px 30px; /* 放大按钮尺寸 */
+            font-size: 18px; /* 调整按钮字体 */
+            margin: 5px; /* 调整按钮间距 */
+        }
+
+        button:hover {
+            background-color: #0056b3;
+            transform: scale(1.05);
+        }
+
+        .button-container {
+            display: flex;
+            justify-content: center;
+            margin: 5px;
+        }
+    </style>
+</head>
+<body>
+    {% include 'sidebar.html' %}
+    <div id="content">
+        <h1>提示词编辑</h1>
+        <select id="file-select">
+            <option value="">请选择文件</option>
+        </select>
+        <button id="load-btn">加载文件</button>
+        <textarea id="file-content"></textarea>
+        <button id="save-btn">保存文件</button>
+    </div>
+
+    <script>
+        $(document).ready(function() {
+            // 加载文件列表
+            $.getJSON('/tishi_files', function(data) {
+                data.forEach(function(file) {
+                    $('#file-select').append($('<option>', {
+                        value: file.name,
+                        text: file.name
+                    }));
+                });
+            });
+
+            // 加载文件内容
+            $('#load-btn').click(function() {
+                var filename = $('#file-select').val();
+                if (filename) {
+                    $.getJSON('/read_tishi_file', { filename: filename }, function(data) {
+                        $('#file-content').val(data.content);
+                    });
+                } else {
+                    alert('请选择一个文件');
+                }
+            });
+
+            // 保存文件内容
+            $('#save-btn').click(function() {
+                var filename = $('#file-select').val();
+                var content = $('#file-content').val();
+                if (filename && content) {
+                    $.ajax({
+                        url: '/save_tishi_file',
+                        type: 'POST',
+                        contentType: 'application/json',
+                        data: JSON.stringify({ filename: filename, content: content }),
+                        success: function(response) {
+                            alert(response.message);
+                        },
+                        error: function(xhr, status, error) {
+                            alert('保存失败: ' + error);
+                        }
+                    });
+                } else {
+                    alert('请选择一个文件并填写内容');
+                }
+            });
+        });
+    </script>
+</body>
+</html>
