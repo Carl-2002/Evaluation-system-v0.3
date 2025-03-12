@@ -32,9 +32,9 @@ def chat(query, reference, dropdown):
     print(result)
     
     pattern = r'<think>(.*?)</think>'
-    match = re.search(pattern, result)
+    match = re.search(pattern, result, re.DOTALL)
     if match:
-        return re.split(r'</think>\s*', result, maxsplit=1)[1], match.group(1)
+        return re.split(r'</think>\s*', result, maxsplit=1, flags=re.DOTALL)[1], match.group(1)
     elif reasoning:
         print(reasoning)
         return result, reasoning
