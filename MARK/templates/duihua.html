@@ -162,8 +162,10 @@
                     <textarea id="user-input"></textarea>
                 </div>
                 <div class="button-group">
-                    <button id="submit-btn">提交内容</button>
+                    <button id="submit-btn">提交输入</button>
                     <button id="clear-btn">清空内容</button>
+                    <button id="save-btn">保存对话</button>
+                    <button id="caidan">彩蛋内容</button>
                 </div>
             </div>
 
@@ -181,6 +183,8 @@
         const outputArea = document.getElementById('output-area');
         const submitBtn = document.getElementById('submit-btn');
         const clearBtn = document.getElementById('clear-btn');
+        const saveBtn = document.getElementById('save-btn');
+        const caidanBtn = document.getElementById('caidan');
 
         // 动态填充模型选择下拉菜单
         fetch('/get_models')
@@ -245,6 +249,35 @@
             outputArea.innerHTML = '';
             systemPromptInput.value = '';
             userInputInput.value = '';
+        });
+
+        saveBtn.addEventListener('click', () => {
+            // 获取右侧框中的内容
+            const outputContent = outputArea.innerText;
+
+            // 创建一个Blob对象
+            const blob = new Blob([outputContent], { type: 'text/plain' });
+
+            // 创建一个下载链接
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'output.txt';
+
+            // 触发点击事件来下载文件
+            document.body.appendChild(a);
+            a.click();
+
+            // 清理
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        caidanBtn.addEventListener('click', () => {
+            const outputText = `<div class="output-item">
+                                <p>祝您身体健康，万事如意！</p>
+                            </div>`;
+            outputArea.innerHTML += outputText;
         });
     </script>
 </body>
