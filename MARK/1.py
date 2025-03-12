@@ -222,7 +222,7 @@ def submit_evaluation():
     dropdown3 = data.get('dropdown3')
     dropdown4 = data.get('dropdown4')  # 新增参数
 
-    if not (dropdown1 and dropdown3 == 'choose') or not (dropdown1 and dropdown3 == 'fanyi' and dropdown4 and dropdown2) or not (dropdown1 and dropdown3 == 'text' and dropdown4 and dropdown2):
+    if not ((dropdown1 and dropdown3 == 'choose') or (dropdown1 and dropdown3 == 'fanyi' and dropdown4 and dropdown2) or (dropdown1 and dropdown3 == 'text' and dropdown4 and dropdown2)):
         error_message = f"请选择所有选项"
         socketio.emit('error', {'message': error_message})
         raise ValueError(error_message)  # 抛出异常以停止程序
@@ -270,7 +270,7 @@ def submit_answer():
     dropdown2 = data.get('dropdown2')
     dropdown3 = data.get('dropdown3')
 
-    if not dropdown1 or not dropdown2 or not dropdown3:
+    if not (dropdown1 and dropdown2 and dropdown3):
         error_message = f"请选择所有选项"
         socketio.emit('error', {'message': error_message})
         raise ValueError(error_message)  # 抛出异常以停止程序
