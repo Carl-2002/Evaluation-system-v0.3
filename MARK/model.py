@@ -30,8 +30,8 @@ def chat(query, reference, answer, dropdown, tishici):
         model=model_name,
         messages=[
         {"role": "system", "content": tishici},
+        {"role": "user", "content": f"{ciyu1}是: {query}\n{ciyu2}是: {answer}\n请根据上述标准对这个{ciyu2}评分并阐述理由。"},
         {"role": "user", "content": reference_text},
-        {"role": "user", "content": f"{ciyu1}是: {query}\n{ciyu2}是: {answer}\n请根据上述标准对这个{ciyu2}评分并阐述理由。"}
         ],
         temperature=0.3,
         stream=False,
@@ -41,16 +41,14 @@ def chat(query, reference, answer, dropdown, tishici):
     result = completion.choices[0].message.content
     
     reasoning = getattr(completion.choices[0].message, "reasoning_content", None)
-    
-    result = result.replace('\n', '')
     print(result)
     
     pattern = r'<think>(.*?)</think>'
-    match = re.search(pattern, result)
+    match = re.search(pattern, result, re.DOTALL)
     if match:
-        result = re.split(r'</think>\s*', result, maxsplit=1)[1]
+        result = re.split(r'</think>\s*', result, maxsplit=1, flags=re.DOTALL)[1]
         score, reason, stop = extract_score_and_reason(result)
-        return score, reason, stop, match.group(1)
+        return score, reason, stop, match.group(1).strip()
     elif reasoning:
         print(reasoning)
         score, reason, stop = extract_score_and_reason(result)
@@ -61,7 +59,7 @@ def chat(query, reference, answer, dropdown, tishici):
 
 def extract_score_and_reason(response):
     # 找到第一个阿拉伯数字
-    score_match = re.search(r'\d+', response)
+    score_match = re.search(r'\d+', response, re.DOTALL)
     if score_match:
         score = int(score_match.group())
         print(score)
@@ -72,7 +70,7 @@ def extract_score_and_reason(response):
         stop = 1
     
     # 找到结构 ":" 或 "：" 并提取其后面的内容直到字符串结束
-    reason_match = re.search(r'[：:]\s*(.*)', response)
+    reason_match = re.search(r'[：:]\s*(.*)', response, re.DOTALL)
     if reason_match:
         reason = reason_match.group(1)
         print(reason)

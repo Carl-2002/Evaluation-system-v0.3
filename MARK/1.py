@@ -10,6 +10,7 @@ import text_choose
 import ask_xsl
 import ask_choose
 import jiaoliu
+import tishici_ping
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
@@ -54,6 +55,10 @@ def get_models():
 @app.route("/")
 def hello_world():
     return render_template('index.html')
+
+@app.route("/tishici_ceshi")
+def tishici_ceshi():
+    return render_template('tishici_ceshi.html')
 
 @app.route("/duihua")
 def duihua():
@@ -300,6 +305,38 @@ def submit_answer():
         ask_choose.process_file(file_path, dropdown2, socketio, dropdown1, answer_path, tishici)
         return jsonify({'message': '回答成功!'}), 202
 
+@app.route('/submit_tishici', methods=['POST'])
+def submit_tishici():
+    data = request.get_json()
+    dropdown1 = data.get('dropdown1')
+    dropdown2 = data.get('dropdown2')
+    dropdown3 = data.get('dropdown3')
+
+    if not (dropdown1 and dropdown2 and dropdown3):
+        error_message = f"请选择所有选项"
+        socketio.emit('error', {'message': error_message})
+        raise ValueError(error_message)  # 抛出异常以停止程序
+
+    base_filename = os.path.splitext(dropdown1)[0]
+    file_path = os.path.join(UPLOAD_FOLDER, dropdown1)
+    
+    if dropdown3 == "text":
+        tishi_file_path = os.path.join(TISHI_FOLDER, "提示词-测试.txt")
+        with open(tishi_file_path, 'r', encoding='utf-8') as file:
+            content = file.read()
+            pattern = r'@@@(.*?)@@@'
+            matches = re.findall(pattern, content, re.DOTALL)
+    
+            if not matches:
+                error_message = f"提示词格式不正确"
+                socketio.emit('error', {'message': error_message})
+                raise ValueError(error_message)  # 抛出异常以停止程序
+
+        answer_suffix = "_hr"
+        answer_path = os.path.join(TISHI_FOLDER, f"{base_filename}_{dropdown2}{answer_suffix}.xlsx")
+        tishici_ping.process_file(file_path, dropdown2, socketio, dropdown1, answer_path, matches)
+        return jsonify({'message': '测试成功!'}), 202
+   
 @app.route('/get_content')
 def get_content():
     filename = request.args.get('filename')
@@ -517,16 +554,16 @@ def save_tishi_file():
         file.write(content)
 
     return jsonify({'message': '文件保存成功'})
-
 @app.route('/chat', methods=['POST'])
 def handle_chat():
     data = request.get_json()
     query = data.get('query')
     reference = data.get('reference')
     dropdown = data.get('dropdown')
+    conversation_history = data.get('conversation_history', [])
 
-    result, reasoning = jiaoliu.chat(query, reference, dropdown)
-    return jsonify({'result': result, 'reasoning': reasoning})
+    result, reasoning, conversation_history = jiaoliu.chat(query, reference, dropdown, conversation_history)
+    return jsonify({'result': result, 'reasoning': reasoning, 'conversation_history': conversation_history})
 
 @socketio.on('connect')
 def handle_connect():

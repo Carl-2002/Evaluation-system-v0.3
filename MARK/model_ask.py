@@ -24,8 +24,8 @@ def choose(query, A, B, C, D, reference, dropdown, tishici):
         model=model_name,
         messages=[
         {"role": "system", "content": tishici},
+        {"role": "user", "content": f"问题是: {query}\n选项A: {A}\n选项B: {B}\n选项C: {C}\n选项D: {D}\n请根据上述标准作答：" },
         {"role": "user", "content": reference_text},
-        {"role": "user", "content": f"问题是: {query}\n选项A: {A}\n选项B: {B}\n选项C: {C}\n选项D: {D}\n请根据上述标准作答：" }
         ],
         temperature=0.3,
         stream=False,
@@ -35,16 +35,14 @@ def choose(query, A, B, C, D, reference, dropdown, tishici):
     result = completion.choices[0].message.content
     
     reasoning = getattr(completion.choices[0].message, "reasoning_content", None)
-    
-    result = result.replace('\n', '')
     print(result)
     
     pattern = r'<think>(.*?)</think>'
-    match = re.search(pattern, result)
+    match = re.search(pattern, result, re.DOTALL)
     if match:
-        result = re.split(r'</think>\s*', result, maxsplit=1)[1]
+        result = re.split(r'</think>\s*', result, maxsplit=1, flags=re.DOTALL)[1]
         letter, reason, stop = extract_mark(result)
-        return letter, reason, stop, match.group(1)
+        return letter, reason, stop, match.group(1).strip()
     elif reasoning:
         print(reasoning)
         letter, reason, stop = extract_mark(result)
@@ -80,8 +78,8 @@ def chat(query, reference, dropdown, tishici):
         model=model_name,
        messages=[
             {"role": "system", "content": tishici},
+            {"role": "user", "content": f"{ciyu1}是: {query}\n请根据上述要求{ciyu2}：" },
             {"role": "user", "content": reference_text},
-            {"role": "user", "content": f"{ciyu1}是: {query}\n请根据上述要求{ciyu2}：" }
         ],
         temperature=0.3,
         stream=False,
@@ -91,14 +89,12 @@ def chat(query, reference, dropdown, tishici):
     result = completion.choices[0].message.content
     
     reasoning = getattr(completion.choices[0].message, "reasoning_content", None)
-    
-    result = result.replace('\n', '')
     print(result)
     
     pattern = r'<think>(.*?)</think>'
-    match = re.search(pattern, result)
+    match = re.search(pattern, result, re.DOTALL)
     if match:
-        return re.split(r'</think>\s*', result, maxsplit=1)[1], match.group(1)
+        return re.split(r'</think>\s*', result, maxsplit=1, flags=re.DOTALL)[1], match.group(1).strip()
     elif reasoning:
         print(reasoning)
         return result, reasoning
@@ -107,7 +103,7 @@ def chat(query, reference, dropdown, tishici):
 
 def extract_mark(response):
     # 找到第一个字母
-    letter_match = re.search(r'[A-D]', response)
+    letter_match = re.search(r'[A-D]', response, re.DOTALL)
     if letter_match:
         letter = letter_match.group()
         print(letter)
@@ -118,7 +114,7 @@ def extract_mark(response):
         stop = 1
     
     # 找到结构 ":" 或 "：" 并提取其后面的内容直到字符串结束
-    reason_match = re.search(r'[：:]\s*(.*)', response)
+    reason_match = re.search(r'[：:]\s*(.*)', response, re.DOTALL)
     if reason_match:
         reason = reason_match.group(1)
         print(reason)
