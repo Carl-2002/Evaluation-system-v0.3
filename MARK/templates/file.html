@@ -149,6 +149,7 @@
                     <td>${file.uploadTime}</td>
                     <td>
                         <div class="buttons">
+                            <button onclick="showFile('${file.name}')">显示</button>
                             <button onclick="downloadFile('${file.name}')">下载</button>
                             <button onclick="deleteFile('${file.name}')">删除</button>
                         </div>
@@ -182,6 +183,10 @@
             const result = await response.json();
             alert(result.message);
             loadFiles(); // 刷新文件列表
+        }
+
+        async function showFile(filename) {
+           window.open(`/show?filename=${filename}`, '_blank');
         }
 
         // 页面加载时加载文件列表

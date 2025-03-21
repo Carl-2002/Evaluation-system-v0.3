@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>结果页面</title>
+    <title>评测结果</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -97,10 +97,12 @@
 
     <script>
         async function showFile(filename) {
-            if (filename.includes('_t') || filename.includes('_f')) {
-                window.location.href = `/show?filename=${filename}`;
-            } else  {
-                window.location.href = `/show_choose?filename=${filename}`;
+            if (filename.includes('_tr_d')) {
+                window.open(`/drawing?filename=${filename}`, '_blank');
+                window.open(`/show?filename=${filename}`, '_blank');
+            }
+            else {
+                window.open(`/show?filename=${filename}`, '_blank');
             }
         }
 

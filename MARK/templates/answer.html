@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>回答测试</title>
+    <title>问答测试</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -31,8 +31,8 @@
             text-align: center; /* 使内容居中 */
         }
         .evaluation-container h2 {
-        margin-top: 0; /* 移除顶部外边距 */
-        margin-bottom: 5px; /* 设置底部外边距 */
+            margin-top: 0; /* 移除顶部外边距 */
+            margin-bottom: 5px; /* 设置底部外边距 */
         }
         .evaluation-container select {
             width: 100%;
@@ -94,26 +94,94 @@
             background-color: #115bab;
             transition: width 0.3s ease;
         }
+        /* 自定义下拉菜单样式 */
+        .custom-dropdown {
+            position: relative;
+            width: 100%;
+            margin: 10px 0;
+        }
+
+        .dropdown-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            padding: 10px 14px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            cursor: pointer;
+            background-color: transparent; /* 去掉背景颜色 */
+            box-sizing: border-box;
+        }
+        .dropdown-con {
+            display: none;
+            position: absolute;
+            top: 100%; /* 紧贴头部下方 */
+            left: 0;
+            width: 100%; /* 宽度与头部一致 */
+            max-height: 150px;
+            overflow-y: auto;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background-color: #fff; /* 下拉内容背景颜色 */
+            z-index: 1000;
+            box-sizing: border-box;
+        }
+
+        .dropdown-con label {
+            display: flex;
+            align-items: center;
+            padding: 3px 10px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: transparent; /* 去掉背景颜色 */
+        }
+
+        .dropdown-con label:hover {
+            background-color: #f0f0f0; /* 悬停时的背景颜色 */
+        }
+
+        /* 自定义复选框样式 */
+        .dropdown-con input[type="checkbox"] {
+            appearance: none; /* 移除默认样式 */
+            width: 20px;
+            height: 20px;
+            border: 2px solid #ccc;
+            border-radius: 4px;
+            margin-right: 10px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            background-color: transparent; /* 去掉背景颜色 */
+        }
+        .dropdown-con input[type="checkbox"]:checked {
+            background-color: #115bab; 
+            border-color: #115bab
+        }
     </style>
 </head>
 <body>
     {% include 'sidebar.html' %}
     <div class="content-container">
         <div class="evaluation-container">
-            <h2>回答测试</h2>
+            <h2>问答测试</h2>
             <select id="dropdown1">
                 <option value="">选择文件</option>
-                <!-- 文件选项将通过 JavaScript 动态添加 -->
             </select>
             <select id="dropdown3">
                 <option value="">选择题型</option>
-                <option value="choose">选择题</option>
-                <option value="text">文字题</option>
-                <option value="fanyi">翻译题</option>
+                <option value="text_free">文字题(自由组合提示词)</option>
+                <option value="text_solid">文字题(固定模型提示词)</option>
+                <option value="choose">选择题(限选一个模型)</option>
             </select>
-            <select id="dropdown2">
-                <option value="">选择模型</option>
-            </select>
+            <div class="custom-dropdown">
+                <div class="dropdown-header" onclick="toggleDropdown()">
+                    <span id="dropdownHeader">选择模型</span>
+                </div>
+                <div class="dropdown-con" id="dropdown2-container">
+                    <!-- 动态加载的复选框将在这里 -->
+                </div>
+            </div>            
             <div class="button-container">
                 <button id="submitEvaluationButton" onclick="submitanswer()">提交文件</button>
             </div>
@@ -131,23 +199,22 @@
         const socket = io();
 
         // 监听进度更新
-        socket.on('progress', function(data) {
+        socket.on('progress_1', function(data) {
             const progressBarFill = document.getElementById('progressBarFill');
             progressBarFill.style.width = data.progress + '%';
             const resultContainer = document.getElementById('resultContainer');
-            resultContainer.innerHTML = `<h3>回答进度: ${data.progress.toFixed(2)}%</h3>`;
+            resultContainer.innerHTML = `<h3>回答进度: ${data.progress.toFixed(2)}%</h3><br><p>${data.jindu}</p>`;
         });
 
         // 监听状态更新
-        socket.on('status', function(data) {
+        socket.on('status_1', function(data) {
             const resultContainer = document.getElementById('resultContainer');
             resultContainer.innerHTML = `<h3>${data.message}</h3>`;
-            // 禁用终止按钮
             document.getElementById('submitEvaluationButton').classList.remove('disabled');
         });
 
         // 监听错误更新
-        socket.on('error', function(data) {
+        socket.on('error_1', function(data) {
             const resultContainer = document.getElementById('resultContainer');
             resultContainer.innerHTML = `<h3 style="color: red;">错误: ${data.message}</h3>`;
             document.getElementById('submitEvaluationButton').classList.remove('disabled');
@@ -172,6 +239,12 @@
             });
         }
 
+        function toggleDropdown() {
+            const dropdownContent = document.getElementById('dropdown2-container');
+            dropdownContent.style.display = dropdownContent.style.display === 'block' ? 'none' : 'block';
+        }
+
+        // 加载模型列表
         async function loadModels() {
             const response = await fetch('/get_models');
             if (!response.ok) {
@@ -180,31 +253,43 @@
             }
 
             const models = await response.json();
-            const dropdown2 = document.getElementById('dropdown2');
-            dropdown2.innerHTML = '<option value="">选择模型</option>';
+            const dropdown2Container = document.getElementById('dropdown2-container');
+            dropdown2Container.innerHTML = '';
 
             models.forEach(model => {
-                const option = document.createElement('option');
-                option.value = model;
-                option.textContent = model;
-                dropdown2.appendChild(option);
+                const label = document.createElement('label');
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.value = model;
+
+                // 添加 change 事件监听器
+                checkbox.addEventListener('change', updateDropdownHeader);
+
+                label.appendChild(checkbox);
+                label.appendChild(document.createTextNode(` ${model}`));
+                dropdown2Container.appendChild(label);
             });
         }
 
+        // 提交答案时获取选中的模型
         function submitanswer() {
             const dropdown1 = document.getElementById('dropdown1').value;
-            const dropdown2 = document.getElementById('dropdown2').value;
+
+            const selectedModels = Array.from(
+                document.querySelectorAll('#dropdown2-container input[type="checkbox"]:checked')
+            ).map(checkbox => checkbox.value);
+
             const dropdown3 = document.getElementById('dropdown3').value;
 
             const data = {
                 dropdown1: dropdown1,
-                dropdown2: dropdown2,
+                dropdown2: selectedModels,
                 dropdown3: dropdown3
             };
 
             const resultContainer = document.getElementById('resultContainer');
             document.getElementById('submitEvaluationButton').classList.add('disabled');
-            resultContainer.innerHTML = '<h3>回答中.......</h3>'; // 添加加载提示
+            resultContainer.innerHTML = '<h3>回答中.......</h3>';
 
             fetch('/submit_answer', {
                 method: 'POST',
@@ -216,7 +301,6 @@
             .then(response => response.json())
             .then(result => {
                 if (result.message === '回答开始') {
-                    // 启动进度条
                     document.getElementById('progressBarFill').style.width = '0%';
                 } else {
                     resultContainer.innerHTML = `<h3>${result.message}</h3>`;
@@ -225,14 +309,28 @@
             .catch(error => {
                 console.error('Error:', error);
                 alert('提交失败');
-                const resultContainer = document.getElementById('resultContainer');
-                resultContainer.innerHTML = '<h3>回答失败</h3>'; // 添加加载提示
+                resultContainer.innerHTML = '<h3>测试失败</h3>';
             });
         }
-        
+
+        function updateDropdownHeader() {
+            const selectedModels = Array.from(
+                document.querySelectorAll('#dropdown2-container input[type="checkbox"]:checked')
+            ).map(checkbox => checkbox.value);
+
+            const dropdownHeader = document.getElementById('dropdownHeader');
+            if (selectedModels.length === 0) {
+                dropdownHeader.textContent = '选择模型';
+            } else { 
+                dropdownHeader.textContent = selectedModels.join(', ');
+            } 
+        }
+
+        // 页面加载时初始化
         window.onload = function() {
             loadFiles();
             loadModels();
+            updateDropdownHeader();
         };
     </script>
 </body>

@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>图像展示</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/antd/4.23.6/antd.min.css" />
+    <style>
+        .container {
+            width: 100%;
+            max-width: 1400px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        h2 {
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+        .data-item {
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .info-table {
+            width: 100%;
+            margin: 10px;
+            border-collapse: collapse;
+            text-align: left;
+        }
+        .info-table th, .info-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+        }
+        .info-table th {
+            background-color: #f2f2f2;
+        }
+        .chart-container {
+            display: flex;
+            justify-content: center; /* 水平居中并分配空间 */
+            width: 100%; /* 调整宽度以适应一行 */
+            height: 500px; /* 缩小图表高度 */
+        }
+        .chart {
+            width: 50%; /* 调整每个图表的宽度 */
+            height: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2 id="reportTitle"></h2>
+        <div id="dataContainer"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        function drawRougeChart(ctx, rougeScores) {
+            const rougeChart = new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: ['ROUGE-1 R', 'ROUGE-1 P', 'ROUGE-1 F', 'ROUGE-2 R', 'ROUGE-2 P', 'ROUGE-2 F', 'ROUGE-L R', 'ROUGE-L P', 'ROUGE-L F'],
+                    datasets: [{
+                        label: 'ROUGE Scores',
+                        data: rougeScores,
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: {
+                        r: {
+                            beginAtZero: true,
+                            max: 1
+                        }
+                    }
+                }
+            });
+        }
+
+        function drawBleuChart(ctx, bleuScores) {
+            const bleuChart = new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: ['BLEU Score 1', 'BLEU Score 2', 'BLEU Score 3', 'BLEU Score 4'],
+                    datasets: [{
+                        label: 'BLEU Scores',
+                        data: bleuScores,
+                        backgroundColor: 'rgba(153, 102, 255, 0.2)',
+                        borderColor: 'rgba(153, 102, 255, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: {
+                        r: {
+                            beginAtZero: true,
+                            max: 1
+                        }
+                    }
+                }
+            });
+        }
+
+        async function fetchData(filename) {
+            try {
+                const response = await fetch(`/draw_picture?filename=${filename}`);
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                const data = await response.json();
+
+                const dataContainer = document.getElementById('dataContainer');
+
+                data.forEach(item => {
+                    const promptWord = item.prompt_word;
+                    const modelName = item.model_name;
+                    const bleuScores = item.bleu_scores;
+                    const rougeScores = item.rouge_scores;
+
+                    // 创建一个新的数据项容器
+                    const dataItem = document.createElement('div');
+                    dataItem.className = 'data-item';
+
+                    // 创建信息表格
+                    const infoTable = document.createElement('table');
+                    infoTable.className = 'info-table';
+                    infoTable.innerHTML = `
+                        <tr>
+                            <th>提示词</th>
+                            <td>${promptWord}</td>
+                        </tr>
+                        <tr>
+                            <th>模型名称</th>
+                            <td>${modelName}</td>
+                        </tr>
+                    `;
+                    dataItem.appendChild(infoTable);
+
+                    // 创建新的canvas元素
+                    const chartContainer = document.createElement('div');
+                    chartContainer.className = 'chart-container';
+
+                    const rougeCanvas = document.createElement('canvas');
+                    rougeCanvas.className = 'chart';
+                    rougeCanvas.id = `rouge-chart-${promptWord}-${modelName}`;
+
+                    const bleuCanvas = document.createElement('canvas');
+                    bleuCanvas.className = 'chart';
+                    bleuCanvas.id = `bleu-chart-${promptWord}-${modelName}`;
+
+                    chartContainer.appendChild(rougeCanvas);
+                    chartContainer.appendChild(bleuCanvas);
+
+                    // 绘制图表
+                    drawRougeChart(rougeCanvas.getContext('2d'), rougeScores);
+                    drawBleuChart(bleuCanvas.getContext('2d'), bleuScores);
+
+                    // 将图表容器添加到数据项中
+                    dataItem.appendChild(chartContainer);
+
+                    // 将数据项添加到容器中
+                    dataContainer.appendChild(dataItem);
+                });
+
+            } catch (error) {
+                console.error('Error fetching data:', error);
+            }
+        }
+
+        // 获取 URL 参数中的 filename
+        const urlParams = new URLSearchParams(window.location.search);
+        const filename = urlParams.get('filename');
+
+        if (filename) {
+            fetchData(filename);
+            document.getElementById('reportTitle').textContent = `评测报告：${filename}`;
+        }
+    </script>
+</body>
+</html>

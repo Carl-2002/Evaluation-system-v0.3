@@ -137,15 +137,37 @@
             justify-content: center;
             margin: 10px;
         }
-
-        /* 添加烟花效果的容器 */
-        .fireworks {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 1000;
+        .user-message {
+            text-align: right; /* 靠右对齐 */
+            margin-bottom: 5px;
+            background-color: #dcf8c6; /* 绿色背景 */
+            padding: 5px;
+            border-radius: 10px;
+            max-width: 80%; /* 最大宽度 */
+            margin-left: auto; /* 靠右 */
+            line-height: 1.5;
+            word-wrap: break-word;
+        }
+        .user-message p{
+            margin: 5px; /* 移除默认的上下外边距 */
+        }
+        .model-message{
+            text-align: left; /* 靠左对齐 */
+            margin-bottom: 5px;
+            background-color: #ececec; /* 灰色背景 */
+            padding: 5px;
+            border-radius: 10px;
+            max-width: 80%; /* 最大宽度 */
+            margin-right: auto; /* 靠左 */
+            line-height: 1.5;
+        }
+        .model-message p{
+            margin: 5px; /* 移除默认的上下外边距 */
+        }
+        .model-thinking {
+            font-size: 12px;
+            color: #666;
+            line-height: 1.2;
         }
     </style>
 </head>
@@ -154,7 +176,11 @@
     <div id="content">
         <h1>多轮对话</h1> <!-- 在 content 容器中居中显示 -->
         <div style="display: flex; flex-direction: row; width: 100%">
-            <!-- 左边容器 -->
+            <div id="right-container">
+                <div id="output-area">
+                    <div id="chat-container"></div> 
+                </div>
+            </div>
             <div id="left-container">
                 <div class="input-group">
                     <label for="model-select">选择模型</label>
@@ -177,11 +203,6 @@
                     <button id="save-btn">保存对话</button>
                     <button id="caidan">重置对话</button>
                 </div>
-            </div>
-
-            <!-- 右边容器 -->
-            <div id="right-container">
-                <div id="output-area"></div>
             </div>
         </div>
     </div>
@@ -224,7 +245,21 @@
             // 禁用提交按钮
             submitBtn.classList.add('disabled');
             submitBtn.disabled = true;
+
+            // 清空用户输入框
             userInputInput.value = '';
+            const formattedUserInput = userInput.replace(/\n/g, '<br>');
+            // 显示用户输入内容
+            const userMessage = `<div class="user-message">
+                                    <p>${formattedUserInput}</p>
+                                </div>`;
+            const chatContainer = document.getElementById('chat-container');
+            chatContainer.insertAdjacentHTML('beforeend', userMessage);
+
+            // 滚动到底部
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+
+            // 发送请求获取模型回复
             fetch('/chat', {
                 method: 'POST',
                 headers: {
@@ -239,45 +274,46 @@
             })
             .then(response => response.json())
             .then(data => {
-                const userInputWithBr = userInput.replace(/\n/g, '<br>');
-                const resultWithBr = data.result.replace(/\n/g, '<br>');
-                const reasoningWithBr = data.reasoning.replace(/\n/g, '<br>');
+                // 显示模型回复内容
+                const formattedResult = data.result ? data.result.replace(/\n/g, '<br>') : '无';
+                const formattedReasoning = data.reasoning ? data.reasoning.replace(/\n/g, '<br>') : '无';
                 
-                const outputText = `<div class="output-item">
-                                        <p><strong>输入：</strong>${userInput}</p>
-                                        <p><strong>回答：</strong>${data.result}</p>
-                                        <p><strong>思考：</strong>${data.reasoning}</p>
+                const modelMessage = `<div class="model-message">
+                                         <p>${formattedResult}</p>
+                                        <p class="model-thinking"><strong>思考：</strong>${formattedReasoning}</p>
                                     </div>`;
-                outputArea.innerHTML += outputText;
+                chatContainer.insertAdjacentHTML('beforeend', modelMessage);
+
+                // 滚动到底部
+                chatContainer.scrollTop = chatContainer.scrollHeight;
 
                 // 更新对话历史
                 conversationHistory = data.conversation_history;
             })
             .catch(error => console.error('请求失败:', error))
             .finally(() => {
-                // 无论请求成功还是失败，都启用提交按钮
+                // 启用提交按钮
                 submitBtn.classList.remove('disabled');
                 submitBtn.disabled = false;
             });
         });
 
         clearBtn.addEventListener('click', () => {
-            outputArea.innerHTML = '';
-            userInputInput.value = '';
+            const chatContainer = document.getElementById('chat-container');
+            chatContainer.innerHTML = '';
         });
 
         saveBtn.addEventListener('click', () => {
-            // 获取右侧框中的内容
-            const outputContent = outputArea.innerText;
+            const chatContent = document.getElementById('chat-container').innerText;
 
             // 创建一个Blob对象
-            const blob = new Blob([outputContent], { type: 'text/plain' });
+            const blob = new Blob([chatContent], { type: 'text/plain' });
 
             // 创建一个下载链接
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = 'output.txt';
+            a.download = 'chat.txt';
 
             // 触发点击事件来下载文件
             document.body.appendChild(a);
@@ -289,12 +325,11 @@
         });
 
         caidanBtn.addEventListener('click', () => {
-            const outputText = `<div class="output-item">
-                                <p>已重置对话！上文记忆已删除！</p>
-                            </div>`;
-            outputArea.innerHTML += outputText;
+            const chatContainer = document.getElementById('chat-container');
             conversationHistory = [];  // 清空对话历史
+            alert('对话已重置！');
         });
+
     </script>
 </body>
 </html>

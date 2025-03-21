@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>结果页面</title>
+    <title>回答结果</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -97,11 +97,7 @@
 
     <script>
         async function showFile(filename) {
-            if (filename.includes('_t') || filename.includes('_f')) {
-                window.location.href = `/ask_text_1?filename=${filename}`;
-            } else  {
-                window.location.href = `/ask_choose_1?filename=${filename}`;
-            }
+            window.open(`/show?filename=${filename}`, '_blank');
         }
 
         async function downloadFile(filename) {

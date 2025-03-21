@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>结果页面</title>
+    <title>报告</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/antd/4.23.6/antd.min.css" />
     <style>
         .container {
             width: 100%;
-            max-width: 1400px;
+            max-width: 1500px;
             margin: 20px auto;
             padding: 20px;
             background-color: #fff;
@@ -16,210 +16,217 @@
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             text-align: center;
         }
+        h1 {
+            text-align: center;
+            font-size: 24px;
+        }
+        h3 {
+            font-size: 20px;
+            margin: 2px; /* 调整上下间距为 10px，可根据需要进一步调整 */
+        }
         .table-container {
+            max-width: 100%;
+            overflow-x: auto;
             overflow-y: auto;
-            max-height: 600px; /* 设置最大高度 */
+            max-height: 600px;
         }
         table {
-            width: 100%;
             border-collapse: collapse;
+            width: 100%;
+            table-layout: auto;
         }
-        td {
+        th, td {
             border: 1px solid #ddd;
-            padding: 8px;
             text-align: left;
+            word-wrap: break-word;
+            max-width: 1000px;
+            white-space: normal;
         }
         th {
             background-color: #f2f2f2;
-            text-align: center;
+            position: sticky;
+            top: 0;
+            z-index: 1;
         }
-        .stats-container {
-            margin-top: 20px;
+        .table-container::-webkit-scrollbar {
+            width: 8px;
         }
-        .stats-container th,
-        .stats-container td {
-            text-align: center;
+        .table-container::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
         }
-        .chart-container {
-            display: flex;
-            justify-content: center; /* 水平居中 */
-            align-items: center; /* 垂直居中 */
-            margin-top: 10px;
-            width: 100%; /* 调整宽度以适应一行 */
-            height: 500px; /* 调整高度以适应一行 */
+        .table-container::-webkit-scrollbar-track {
+            background: #f1f1f1;
         }
-        .chart {
-            width: 45%;
+        .dropdown {
+            position: relative; /* 确保子元素绝对定位 */
             display: inline-block;
-            vertical-align: middle;
+            margin-bottom: 5px;
+        }
+        .dropdown-button {
+            padding: 5px 10px;
+            font-size: 16px;
+            color: #fff;
+            background-color: #28a745;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        .dropdown-button:hover {
+            background-color: #218838;
+        }
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            background-color: #fff;
+            min-width: 300px;
+            box-shadow: 0px 8px 16px rgba(0, 0, 0, 0.2);
+            z-index: 1000; /* 提高 z-index 值 */
+            border-radius: 8px;
+            overflow-y: auto;
+            max-height: 200px; /* 限制高度 */
+        }
+        .dropdown-content select {
+            width: 100%;
+            height: 200px;
+            font-size: 18px;
+            border: none;
+            outline: none;
+            background-color: transparent;
+        }
+        button {
+            padding: 5px 10px;
+            font-size: 16px;
+            color: #fff;
+            background-color: #007bff;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:active {
+            transform: scale(0.98);
+        }
+        #content {
+            overflow: visible; /* 确保内容不会被裁剪 */
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h2 id="reportTitle">评测报告-文字题</h2>
-        <div class="table-container">
-            <table id="questionTable">
-                <thead>
-                    <tr>
-                        <th>问题</th>
-                        <th>模型答案</th>
-                        <th>标准答案</th>
-                        <th>分数</th>
-                        <th>原因</th>
-                    </tr>
-                </thead>
-                <tbody id="tableBody">
-                    <!-- 表格内容将通过 JavaScript 动态生成 -->
-                </tbody>
-            </table>
-        </div>
-
-        <div class="stats-container">
-            <h3>统计信息</h3>
-            <table id="statsTable">
-                <thead>
-                    <tr>
-                        <th>总题数</th>
-                        <th>平均值</th>
-                        <th>中位数</th>
-                        <th>标准差</th>
-                    </tr>
-                </thead>
-                <tbody id="statsBody">
-                    <!-- 统计信息将通过 JavaScript 动态生成 -->
-                </tbody>
-            </table>
-        </div>
-
-        <div class="chart-container" id="chartContainer">
-            <canvas id="rouge-chart"></canvas>
-            <canvas id="bleu-chart"></canvas>
-        </div>
+        <h1 id="reportTitle"></h1>
+        <div id="content"></div>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/antd/4.23.6/antd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script>
-        function populateTable(data) {
-            const tableBody = document.getElementById('tableBody');
-            tableBody.innerHTML = ''; // 清空表格内容
+        // 定义全局变量存储后端数据
+        let data = null;
 
-            data.forEach(item => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${item['问题']}</td>
-                    <td>${item['模型答案(文字题)']}</td>
-                    <td>${item['标准答案(文字题)']}</td>
-                    <td>${item['分数']}</td>
-                    <td>${item['原因']}</td>
-                `;
-                tableBody.appendChild(row);
-            });
-        }
-
-        function populateStats(stats) {
-            const statsBody = document.getElementById('statsBody');
-            statsBody.innerHTML = ''; // 清空表格内容
-
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>${stats.total_questions}</td>
-                <td>${stats.average}</td>
-                <td>${stats.medium}</td>
-                <td>${stats.standard_deviation}</td>
-            `;
-            statsBody.appendChild(row);
-        }
-
-        function drawRougeChart(rouge) {
-            const ctx = document.getElementById('rouge-chart').getContext('2d');
-            const rougeChart = new Chart(ctx, {
-                type: 'radar',
-                data: {
-                    labels: ['ROUGE-1 R', 'ROUGE-1 P', 'ROUGE-1 F', 'ROUGE-2 R', 'ROUGE-2 P', 'ROUGE-2 F', 'ROUGE-L R', 'ROUGE-L P', 'ROUGE-L F'],
-                    datasets: [{
-                        label: 'ROUGE Scores',
-                        data: [
-                            rouge['rouge-1']['r'],
-                            rouge['rouge-1']['p'],
-                            rouge['rouge-1']['f'],
-                            rouge['rouge-2']['r'],
-                            rouge['rouge-2']['p'],
-                            rouge['rouge-2']['f'],
-                            rouge['rouge-l']['r'],
-                            rouge['rouge-l']['p'],
-                            rouge['rouge-l']['f']
-                        ],
-                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                        borderColor: 'rgba(75, 192, 192, 1)',
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    scales: {
-                        r: {
-                            beginAtZero: true,
-                            max: 1
-                        }
-                    }
-                }
-            });
-        }
-        
-        function drawBleuChart(bleuData) {
-            const ctx = document.getElementById('bleu-chart').getContext('2d');
-            const bleuChart = new Chart(ctx, {
-                type: 'radar',
-                data: {
-                    labels: ['BLEU Score 1', 'BLEU Score 2', 'BLEU Score 3', 'BLEU Score 4'],
-                    datasets: [{
-                        label: 'BLEU Scores',
-                        data: bleuData,
-                        backgroundColor: 'rgba(153, 102, 255, 0.2)',
-                        borderColor: 'rgba(153, 102, 255, 1)',
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    scales: {
-                        r: {
-                            beginAtZero: true,
-                            max: 1
-                        }
-                    }
-                }
-            });
-        }
-
-        async function fetchData(filename) {
-            try {
-                const response = await fetch(`/get_content?filename=${filename}`);
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                const data = await response.json();
-                populateTable(data.data);
-                populateStats(data.stats);
-                
-                if (data.draw_charts == 1) {
-                    drawRougeChart(data.rouge);
-                    drawBleuChart(data.bleu_score);
-                } else {
-                    document.getElementById('chartContainer').style.display = 'none'; // 隐藏图表容器
-                }
-            } catch (error) {
-                console.error('Error fetching data:', error);
-            }
-        }
-
-        // 获取 URL 参数中的 filename 和 draw_charts
+        // 获取 URL 参数中的文件名
         const urlParams = new URLSearchParams(window.location.search);
         const filename = urlParams.get('filename');
+        document.querySelector('#reportTitle').innerText = `报告：${filename || '未提供文件名'}`;
 
-        if (filename) {
-            fetchData(filename);
-            document.getElementById('reportTitle').textContent = `评测报告-文字题: ${filename}`;
+        if (!filename) {
+            document.getElementById('content').innerHTML = '<p>未提供文件名</p>';
+        } else {
+            // 调用后端接口获取文件内容
+            fetch(`/get_content?filename=${encodeURIComponent(filename)}`)
+                .then(response => response.json())
+                .then(responseData => {
+                    if (responseData.message) {
+                        // 如果后端返回错误信息
+                        document.getElementById('content').innerHTML = `<p>${responseData.message}</p>`;
+                    } else {
+                        // 将后端返回的数据赋值给全局变量
+                        data = responseData;
+
+                        // 渲染 Excel 数据
+                        let htmlContent = '';
+                        for (const [sheetName, sheetData] of Object.entries(data.sheets)) {
+                            const columns = sheetData.columns; // 获取列名
+                            const rows = sheetData.data.slice(0, 40); // 限制为前 40 行
+
+                            // 添加下拉菜单
+                            htmlContent += `<h3>Sheet: ${sheetName}</h3>`;
+                            htmlContent += `
+                                <div class="dropdown">
+                                    <button class="dropdown-button" onclick="toggleDropdown('${sheetName}')">选择列</button>
+                                    <div class="dropdown-content" id="dropdown-content-${sheetName}">
+                                        <select multiple id="column-selector-${sheetName}">
+                                            ${columns.map(col => `<option value="${col}" selected>${col}</option>`).join('')}
+                                        </select>
+                                    </div>
+                                </div>
+                            `;
+                            htmlContent += '<button onclick="renderTable(\'' + sheetName + '\')">刷新表格</button>';
+
+                            // 表格容器
+                            htmlContent += `<div class="table-container" id="table-container-${sheetName}"></div>`;
+                        }
+
+                        document.getElementById('content').innerHTML = htmlContent;
+
+                        // 初始渲染表格
+                        for (const sheetName of Object.keys(data.sheets)) {
+                            renderTable(sheetName);
+                        }
+                    }
+                })
+                .catch(error => {
+                    document.getElementById('content').innerHTML = `<p>加载失败: ${error.message}</p>`;
+                });
+        }
+
+        // 动态渲染表格
+        function renderTable(sheetName) {
+            // 确保全局变量已定义
+            if (!data || !data.sheets[sheetName]) {
+                console.error('数据未定义或 sheetName 无效');
+                return;
+            }
+
+            const selector = document.getElementById(`column-selector-${sheetName}`);
+            const selectedColumns = Array.from(selector.selectedOptions).map(option => option.value);
+
+            // 获取原始数据并限制为前 40 行
+            const sheetData = data.sheets[sheetName];
+            const rows = sheetData.data.slice(0, 40);
+
+            // 构造表格 HTML
+            let htmlContent = '<table>';
+            htmlContent += '<tr>';
+            selectedColumns.forEach(col => {
+                htmlContent += `<th>${col}</th>`;
+            });
+            htmlContent += '</tr>';
+
+            rows.forEach(row => {
+                htmlContent += '<tr>';
+                selectedColumns.forEach(col => {
+                    htmlContent += `<td>${row[col] || ''}</td>`;
+                });
+                htmlContent += '</tr>';
+            });
+
+            htmlContent += '</table>';
+            document.getElementById(`table-container-${sheetName}`).innerHTML = htmlContent;
+        }
+
+        // 切换下拉菜单的显示状态
+        function toggleDropdown(sheetName) {
+            const dropdownContent = document.getElementById(`dropdown-content-${sheetName}`);
+            if (dropdownContent.style.display === 'block') {
+                dropdownContent.style.display = 'none';
+            } else {
+                dropdownContent.style.display = 'block';
+            }
         }
     </script>
 </body>
