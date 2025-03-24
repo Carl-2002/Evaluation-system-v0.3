@@ -24,7 +24,7 @@
             width: 80%;
             max-width: 600px;
             margin: 20px 0;
-            padding: 20px;
+            padding: 10px;
             background-color: #fff;
             border-radius: 8px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
@@ -60,7 +60,6 @@
         .result-container {
             margin-top: 20px;
             text-align: left;
-            padding: 10px;
             border-radius: 4px;
             max-height: 300px; /* 设置最大高度 */
         }
@@ -305,13 +304,13 @@
                 dropdown1: dropdown1,
                 dropdown2: selectedModels,
                 dropdown3: dropdown3,
-                dropdown4: dropdown4  // 新增参数
+                dropdown4: dropdown4,
             };
 
             const resultContainer = document.getElementById('resultContainer');
             document.getElementById('submitEvaluationButton').classList.add('disabled');
             resultContainer.innerHTML = '<h3>评测中.......</h3>'; // 添加加载提示
-
+            
             fetch('/submit_evaluation', {
                 method: 'POST',
                 headers: {
@@ -320,20 +319,6 @@
                 body: JSON.stringify(data)
             })
             .then(response => response.json())
-            .then(result => {
-                if (result.message === '评测开始') {
-                    // 启动进度条
-                    document.getElementById('progressBarFill').style.width = '0%';
-                } else {
-                    resultContainer.innerHTML = `<h3>${result.message}</h3>`;
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('提交失败');
-                const resultContainer = document.getElementById('resultContainer');
-                resultContainer.innerHTML = '<h3>评测失败</h3>'; // 添加加载提示
-            });
         }
 
         function updateDropdownHeader() {

@@ -10,7 +10,7 @@ from caculate import calculate_and_save_stats
 def process_file(file_path, dropdown, socketio, filename, evaluation_path, tishici, use_general_algorithm):
     df = pd.read_excel(file_path, header=0)  # header=0 表示第一行为列名
     
-    if '选项A' in df.columns or '模型答案(选择题)' in df.columns:
+    if '选项A' in df.columns or '模型答案(选择题)' in df.columns or '问题(选择题)' in df.columns:
         error_message = f"此为文字题，请选择文字题文件。"
         socketio.emit('error_2', {'message': error_message})
         raise ValueError(error_message)  # 抛出异常以停止程序
@@ -57,6 +57,7 @@ def process_file(file_path, dropdown, socketio, filename, evaluation_path, tishi
                 fenshu, reason, stop, think = chat(question, reference, answer, model, tishici)
                 print("####################")
                 print(fenshu)
+                print("$$$$$$$$$$$$$$$$$$$$")
                 print(reason)
                 print("********************") 
                 print(think)
@@ -94,7 +95,7 @@ def process_file(file_path, dropdown, socketio, filename, evaluation_path, tishi
 def process_file_solid(file_path, dropdown, socketio, filename, evaluation_path, result_dict, use_general_algorithm):
     df = pd.read_excel(file_path, header=0)  # header=0 表示第一行为列名
     
-    if '选项A' in df.columns or '模型答案(选择题)' in df.columns:
+    if '选项A' in df.columns or '模型答案(选择题)' in df.columns or '问题(选择题)' in df.columns:
         error_message = f"此为文字题，请选择文字题文件。"
         socketio.emit('error_2', {'message': error_message})
         raise ValueError(error_message)  # 抛出异常以停止程序
@@ -144,6 +145,7 @@ def process_file_solid(file_path, dropdown, socketio, filename, evaluation_path,
                 fenshu, reason, stop, think = chat(question, reference, answer, model, tishici)
                 print("####################")
                 print(fenshu)
+                print("$$$$$$$$$$$$$$$$$$$$")
                 print(reason)
                 print("********************") 
                 print(think)
@@ -158,8 +160,6 @@ def process_file_solid(file_path, dropdown, socketio, filename, evaluation_path,
                 df.at[index, think_col] = str(think)
     
                 t = t + 1
-                progress = t / total_questions * 100
-                
             else:
                 error_message = f"文件格式错误: 第 {index + 1} 行数据不正确。"    
                 socketio.emit('error_2', {'message': error_message})

@@ -49,7 +49,7 @@ def get_folder_files(folder):
         })
     return files_info
 
-def get_tishi_file(tishi_filename, socketio):
+def get_tishi_file(tishi_filename, socketio, number):
     tishi_file_path = os.path.join(TISHI_FOLDER, tishi_filename)
     with open(tishi_file_path, 'r', encoding='utf-8') as file:
         content = file.read()
@@ -61,15 +61,17 @@ def get_tishi_file(tishi_filename, socketio):
         print(matches)
         return matches
     else:
-        error_message = f"提示词格式不正确"
-        raise ValueError(error_message)  # 抛出异常以停止程序
+        error_message = "提示词格式不正确"
+        socketio.emit('error_{}'.format(number), {'message': error_message})
+        raise ValueError(error_message)
 
-def check_keys_match(result_dict, dropdown2, socketio):
+def check_keys_match(result_dict, dropdown2, socketio, number):
     keys = set(result_dict.keys())
     dropdown_set = set(dropdown2)
     if not dropdown_set.issubset(keys):
-        error_message = f"提示词与模型无法对应"
-        raise ValueError(error_message)  # 抛出异常以停止程序
+        error_message = "提示词与模型无法对应"
+        socketio.emit('error_{}'.format(number), {'message': error_message})
+        raise ValueError(error_message)
 
 @app.route('/get_models')
 def get_models():
@@ -194,7 +196,7 @@ def submit_evaluation():
     dropdown4 = data.get('dropdown4')  # 新增参数
 
     if not ((dropdown1 and dropdown3 == 'choose') or (dropdown1 and dropdown3 == 'text_more' and dropdown4 and dropdown2) or (dropdown1 and dropdown3 == 'text_solo' and dropdown4 and dropdown2)):
-        error_message = f"请选择所有选项"
+        error_message = "请选择所有选项"
         socketio.emit('error_2', {'message': error_message})
         raise ValueError(error_message)  # 抛出异常以停止程序
     
@@ -204,7 +206,7 @@ def submit_evaluation():
         file_path = os.path.join(ANSWER_FOLDER, dropdown1)
 
     if dropdown3 == "text_solo":
-        matches = get_tishi_file("文字评测-唯一.txt", socketio)
+        matches = get_tishi_file("文字评测-唯一.txt", socketio, 2)
         tishici = matches[0].strip()
         
         if dropdown4 == "yes":
@@ -216,22 +218,22 @@ def submit_evaluation():
         
         evaluation_path = os.path.join(EVALUATION_FOLDER, f"{base_filename}_{random.randint(600, 999)}独立{evaluation_suffix}.xlsx")
         evaluate_text.process_file(file_path, dropdown2, socketio, dropdown1, evaluation_path, tishici, use_general_algorithm)
-        return jsonify({'message': '评测成功!'}), 202
+        return jsonify({'message': '成功!'}), 202
     elif dropdown3 == "text_more":
         tishi_file_path = os.path.join(TISHI_FOLDER, "文字评测-模型.txt")
         with open(tishi_file_path, 'r', encoding='utf-8') as file:
             content = file.read()
         
-        pattern = r'@@@\s*(\w+)\s*\n\*\*\*\n(.*?)\s*@@@'
+        pattern = r'@@@\s*(.+?)\s*\n\*\*\*\n(.*?)\s*@@@'
         matches = re.findall(pattern, content, re.DOTALL)
 
         result_dict = {key: value.strip() for key, value in matches}
         if not matches:
-            error_message = f"提示词格式不正确"
+            error_message = "提示词格式不正确"
             socketio.emit('error_2', {'message': error_message})
             raise ValueError(error_message)  # 抛出异常以停止程序
             
-        check_keys_match(result_dict, dropdown2, socketio)
+        check_keys_match(result_dict, dropdown2, socketio, 2)
 
         if dropdown4 == "yes":
             use_general_algorithm = True
@@ -242,12 +244,12 @@ def submit_evaluation():
         
         evaluation_path = os.path.join(EVALUATION_FOLDER, f"{base_filename}_{random.randint(600, 999)}固定{evaluation_suffix}.xlsx")
         evaluate_text.process_file_solid(file_path, dropdown2, socketio, dropdown1, evaluation_path, result_dict, use_general_algorithm)
-        return jsonify({'message': '评测成功!'}), 202
+        return jsonify({'message': '成功!'}), 202
     elif dropdown3 == "choose":
         evaluation_suffix = "_cr"
         evaluation_path = os.path.join(EVALUATION_FOLDER, f"{base_filename}{evaluation_suffix}.xlsx")
         evaluate_choose.evaluate_answers(file_path, socketio, evaluation_path)
-        return jsonify({'message': '评测成功!'}), 202
+        return jsonify({'message': '成功!'}), 202
     else:
         return jsonify({'message': '当前评测不支持'}), 400
 
@@ -272,40 +274,40 @@ def submit_answer():
     file_path = os.path.join(UPLOAD_FOLDER, dropdown1)
     
     if dropdown3 == "text_free":
-        matches = get_tishi_file("文字回答-自由.txt", socketio)
+        matches = get_tishi_file("文字回答-自由.txt", socketio, 1)
 
         answer_suffix = "_ta"
         answer_path = os.path.join(ANSWER_FOLDER, f"{base_filename}_{random.randint(100, 599)}自由{answer_suffix}.xlsx")
         answer_text.process_file_free(file_path, dropdown2, socketio, dropdown1, answer_path, matches)
-        return jsonify({'message': '测试成功!'}), 202
+        return jsonify({'message': '成功!'}), 202
     if dropdown3 == "text_solid":
         tishi_file_path = os.path.join(TISHI_FOLDER, "文字回答-固定.txt")
         with open(tishi_file_path, 'r', encoding='utf-8') as file:
             content = file.read()
         
-        pattern = r'@@@\s*(\w+)\s*\n\*\*\*\n(.*?)\s*@@@'
+        pattern = r'@@@\s*(.+?)\s*\n\*\*\*\n(.*?)\s*@@@'
         matches = re.findall(pattern, content, re.DOTALL)
 
         result_dict = {key: value.strip() for key, value in matches}
         if not matches:
-            error_message = f"提示词格式不正确"
+            error_message = "提示词格式不正确"
             socketio.emit('error_1', {'message': error_message})
             raise ValueError(error_message)  # 抛出异常以停止程序
         
-        check_keys_match(result_dict, dropdown2, socketio)
+        check_keys_match(result_dict, dropdown2, socketio, 1)
 
         answer_suffix = "_ta"
         answer_path = os.path.join(ANSWER_FOLDER, f"{base_filename}_{random.randint(100, 599)}固定{answer_suffix}.xlsx")
         answer_text.process_file_solid(file_path, dropdown2, socketio, dropdown1, answer_path, result_dict)
-        return jsonify({'message': '回答成功!'}), 202
+        return jsonify({'message': '成功!'}), 202
     if dropdown3 == "choose":
-        matches = get_tishi_file("选择回答-提示.txt", socketio)
+        matches = get_tishi_file("选择回答-提示.txt", socketio, 1)
         tishici = matches[0].strip()
         
         answer_suffix = "_ca"
         answer_path = os.path.join(ANSWER_FOLDER, f"{base_filename}_{dropdown2[0]}{answer_suffix}.xlsx")
         answer_choose.process_file(file_path, dropdown2[0], socketio, dropdown1, answer_path, tishici)
-        return jsonify({'message': '回答成功!'}), 202
+        return jsonify({'message': '成功!'}), 202
 
 @app.route('/get_content')
 def get_content():
@@ -432,4 +434,4 @@ def handle_disconnect():
     print('Client disconnected')
 
 if __name__ == "__main__":
-    socketio.run(app, host='0.0.0.0', port='8000', debug=True)
+    socketio.run(app, debug=True)

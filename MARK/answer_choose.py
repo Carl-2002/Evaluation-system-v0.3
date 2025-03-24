@@ -5,11 +5,13 @@ import pandas as pd
 from openai import OpenAI
 from dotenv import load_dotenv
 
+from caculate import count_characters
+
 def process_file(file_path, dropdown, socketio, filename, answer_path, tishici):
     df = pd.read_excel(file_path, header=0)  # header=0 表示第一行为列名
 
-    if '模型答案(文字题)' in df.columns or '标准答案(文字题)' in df.columns:
-        error_message = f"此为选择题，请选择选择题文件。"
+    if '模型答案(文字题)' in df.columns or '标准答案(文字题)' in df.columns or '问题(文字题)' in df.columns:
+        error_message = "此为选择题，请选择选择题文件。"
         socketio.emit('error_1', {'message': error_message})
         raise ValueError(error_message)  # 抛出异常以停止程序
     
@@ -33,7 +35,7 @@ def process_file(file_path, dropdown, socketio, filename, answer_path, tishici):
     total_questions = len(df)
     stop_1 = 0
     for index, row in df.iterrows():
-        if pd.notna(row['问题(选择题)']) and pd.notna(row['选项A']) and pd.notna(row['选项B']):  
+        if pd.notna(row['问题(选择题)']) and pd.notna(row['选项A']) and pd.notna(row['选项B']) and pd.isna(row['模型答案(选择题)']) and pd.isna(row['理由']):  
             progress = index / total_questions * 100
             socketio.emit('progress_1', {'filename': filename, 'progress': progress, 'jindu': '正在回答问题({})'.format(index + 1)})
             
@@ -62,10 +64,10 @@ def process_file(file_path, dropdown, socketio, filename, answer_path, tishici):
             df['理由'] = df['理由'].astype(str)
             df.at[index, '模型答案(选择题)'] = str(xuanxiang)
             df.at[index, '理由'] = str(liyou)
-            df.at[index, '字数(理由)'] = len(str(liyou))
+            df.at[index, '字数(理由)'] = count_characters(liyou)
             if think is not None:
                 df.at[index, '回答THINK'] = str(think)
-                df.at[index, '字数(回答THINK)'] = len(str(think))
+                df.at[index, '字数(回答THINK)'] = count_characters(think)
         else:
             error_message = f"文件格式: 第 {index + 1} 行数据不正确。"
             socketio.emit('error_1', {'message': error_message})
@@ -93,7 +95,7 @@ def choose(query, A, B, C, D, reference, client, model_name, tishici):
         {"role": "user", "content": f"问题是: {query}\n选项A: {A}\n选项B: {B}\n选项C: {C}\n选项D: {D}\n请根据上述标准作答：" },
         {"role": "user", "content": reference_text},
         ],
-        temperature=0.6,
+        temperature=0.5,
         stream=False,
     )
     time.sleep(1)
@@ -115,21 +117,15 @@ def choose(query, A, B, C, D, reference, client, model_name, tishici):
 
 
 def extract_mark(response):
-    # 找到第一个字母
-    letter_match = re.search(r'[A-D]', response, re.DOTALL)
-    if letter_match:
-        letter = letter_match.group()
+    match = None
+    for match in re.finditer(r'[A-D]', response[::-1]):  # 反转字符串并逐个匹配
+        break
+    
+    if match:
+        letter = match.group()  # 获取匹配的字母
         stop = 0
     else:
-        letter = '-FFFF'
+        letter = '-FFFF'  # 如果没有匹配到，返回默认值
         stop = 1
     
-    # 找到结构 ":" 或 "：" 并提取其后面的内容直到字符串结束
-    reason_match = re.search(r'[：:]\s*(.*)', response, re.DOTALL)
-    if reason_match:
-        reason = reason_match.group(1)
-        stop = 0
-    else:
-        reason = "-FFFF"
-        stop = 1
-    return letter, reason, stop
+    return letter, response, stop

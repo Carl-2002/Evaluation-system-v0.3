@@ -5,10 +5,12 @@ import pandas as pd
 from openai import OpenAI
 from dotenv import load_dotenv
 
+from caculate import count_characters
+
 def process_file_free(file_path, dropdown, socketio, filename, answer_path, matches):  
     df = pd.read_excel(file_path, header=0)  # header=0 表示第一行为列名
 
-    if '选项A' in df.columns or '问题(选择题)' in df.columns:
+    if '选项A' in df.columns or '问题(选择题)' in df.columns or '模型答案(选择题)' in df.columns:
         error_message = f"此为文字题，请选择文字题文件。"
         socketio.emit('error_1', {'message': error_message})
         raise ValueError(error_message)  # 抛出异常以停止程序
@@ -46,8 +48,8 @@ def process_file_free(file_path, dropdown, socketio, filename, answer_path, matc
                 socketio.emit('progress_1', {'filename': filename, 'progress': progress, 'jindu': '正在进行提示词第{}套+{}+问题{}'.format(i, model, j)})
                 
                 if t <= lenth - 1:
-                    if pd.isna(df.loc[t, '问题(文字题)']):
-                        error_message = f"文件格式: 第{t}行数据不正确。"
+                    if len(df.loc[t, '问题(文字题)']) == 0 or len(df.loc[t, '模型答案(文字题)']) != 0:
+                        error_message = f"文件格式: 第{t+1}行数据不正确。"
                         socketio.emit('error_1', {'message': error_message})
                         raise ValueError(error_message)  # 抛出异常以停止程序
                     
@@ -74,24 +76,23 @@ def process_file_free(file_path, dropdown, socketio, filename, answer_path, matc
                 print(response)
                 print("####################")
                 df.loc[t, '模型答案(文字题)'] = response
-                df.loc[t, '字数(模型答案)'] = len(response)
+                df.loc[t, '字数(模型答案)'] = count_characters(response)
                 if think is not None:
                     df.loc[t, '回答THINK'] = think
-                    df.loc[t, '字数(回答THINK)'] = len(think)
+                    df.loc[t, '字数(回答THINK)'] = count_characters(think)
 
                 t = t + 1
 
     df.to_excel(answer_path, sheet_name='数据', index=False)
-    progress = t / total_questions * 100
-    socketio.emit('progress_1', {'filename': filename, 'progress': progress, 'jindu': '回答成功！'})
+    socketio.emit('progress_1', {'filename': filename, 'progress': 100})
     socketio.emit('status_1', {'message': '回答成功!'})
 
 
 def process_file_solid(file_path, dropdown, socketio, filename, answer_path, result_dict):  
     df = pd.read_excel(file_path, header=0)  # header=0 表示第一行为列名
 
-    if '选项A' in df.columns or '问题(选择题)' in df.columns:
-        error_message = "此为文字题测试，请选择对应文件。"
+    if '选项A' in df.columns or '问题(选择题)' in df.columns or '模型答案(选择题)' in df.columns:
+        error_message = f"此为文字题，请选择文字题文件。"
         socketio.emit('error_1', {'message': error_message})
         raise ValueError(error_message)  # 抛出异常以停止程序
     
@@ -129,8 +130,8 @@ def process_file_solid(file_path, dropdown, socketio, filename, answer_path, res
             socketio.emit('progress_1', {'filename': filename, 'progress': progress, 'jindu': '正在进行{}+问题{}'.format(model, j)})
                 
             if t <= lenth - 1:
-                if pd.isna(df.loc[t, '问题(文字题)']):
-                    error_message = f"文件格式: 第{t}行数据不正确。"
+                if len(df.loc[t, '问题(文字题)']) == 0 or len(df.loc[t, '模型答案(文字题)']) != 0:
+                    error_message = f"文件格式: 第{t+1}行数据不正确。"
                     socketio.emit('error_1', {'message': error_message})
                     raise ValueError(error_message)  # 抛出异常以停止程序
                     
@@ -165,8 +166,7 @@ def process_file_solid(file_path, dropdown, socketio, filename, answer_path, res
             t = t + 1
 
     df.to_excel(answer_path, sheet_name='数据', index=False)
-    progress = t / total_questions * 100
-    socketio.emit('progress_1', {'filename': filename, 'progress': progress, 'jindu': '回答成功！'})
+    socketio.emit('progress_1', {'filename': filename, 'progress': 100})
     socketio.emit('status_1', {'message': '回答成功!'})
 
 
@@ -183,7 +183,7 @@ def chat(query, reference, client, model_name, tishici):
             {"role": "user", "content": query },
             {"role": "user", "content": reference_text},
         ],
-        temperature=0.6,
+        temperature=0.5,
         stream=False,
     )
     time.sleep(1)

@@ -24,7 +24,7 @@
             width: 80%;
             max-width: 600px;
             margin: 20px 0;
-            padding: 20px;
+            padding: 10px;
             background-color: #fff;
             border-radius: 8px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
@@ -60,7 +60,6 @@
         .result-container {
             margin-top: 20px;
             text-align: left;
-            padding: 10px;
             border-radius: 4px;
             max-height: 300px; /* 设置最大高度 */
         }
@@ -183,7 +182,7 @@
                 </div>
             </div>            
             <div class="button-container">
-                <button id="submitEvaluationButton" onclick="submitanswer()">提交文件</button>
+                <button id="submitEvaluationButton" onclick="submitanswer()">提交问题</button>
             </div>
             <div id="resultContainer" class="result-container"></div>
             <div class="progress-container">
@@ -203,7 +202,7 @@
             const progressBarFill = document.getElementById('progressBarFill');
             progressBarFill.style.width = data.progress + '%';
             const resultContainer = document.getElementById('resultContainer');
-            resultContainer.innerHTML = `<h3>回答进度: ${data.progress.toFixed(2)}%</h3><br><p>${data.jindu}</p>`;
+            resultContainer.innerHTML = `<h3>回答进度: ${data.progress.toFixed(2)}%</h3><p>${data.jindu}</p>`;
         });
 
         // 监听状态更新
@@ -299,18 +298,6 @@
                 body: JSON.stringify(data)
             })
             .then(response => response.json())
-            .then(result => {
-                if (result.message === '回答开始') {
-                    document.getElementById('progressBarFill').style.width = '0%';
-                } else {
-                    resultContainer.innerHTML = `<h3>${result.message}</h3>`;
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('提交失败');
-                resultContainer.innerHTML = '<h3>测试失败</h3>';
-            });
         }
 
         function updateDropdownHeader() {

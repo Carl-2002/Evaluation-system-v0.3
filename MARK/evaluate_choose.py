@@ -1,15 +1,14 @@
 import pandas as pd
-from openpyxl import load_workbook
 
 def evaluate_answers(file_path, socketio, evaluation_path):
     df = pd.read_excel(file_path, header=0)
     
-    if '模型答案(文字题)' in df.columns or '标准答案(文字题)' in df.columns:
-        error_message = f"此为选择题，请选择选择题文件。"
+    if '模型答案(文字题)' in df.columns or '标准答案(文字题)' in df.columns or '问题(文字题)' in df.columns:
+        error_message = "此为选择题，请选择选择题文件。"
         socketio.emit('error_2', {'message': error_message})
         raise ValueError(error_message)  # 抛出异常以停止程序
     
-    required_columns = ['问题(选择题)', '参考', '标准答案(选择题)']
+    required_columns = ['问题(选择题)', '参考', '选项A', '选项B', '选项C',	'选项D', '标准答案(选择题)', '模型答案(选择题)']
     if not all(col in df.columns for col in required_columns):
         error_message = "文件格式不正确，缺少必填列。"
         socketio.emit('error_2', {'message': error_message})
@@ -40,7 +39,6 @@ def evaluate_answers(file_path, socketio, evaluation_path):
         workbook = writer.book
         stats_sheet = workbook.create_sheet(title='统计')
  
-        # 写入统计信息到指定单元格
         stats_sheet['A1'] = '总题数'
         stats_sheet['A2'] = total_questions
         stats_sheet['B1'] = '正确题数'
@@ -49,3 +47,6 @@ def evaluate_answers(file_path, socketio, evaluation_path):
         stats_sheet['C2'] = incorrect_count
         stats_sheet['D1'] = '正确率'
         stats_sheet['D2'] = accuracy
+
+    socketio.emit('progress_2', {'progress': 100})
+    socketio.emit('status_2', {'message': '评测成功!'})

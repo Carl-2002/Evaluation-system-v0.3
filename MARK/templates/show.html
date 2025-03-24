@@ -6,6 +6,9 @@
     <title>报告</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/antd/4.23.6/antd.min.css" />
     <style>
+        body {
+            background-color: #f4f4f9;
+        }
         .container {
             width: 100%;
             max-width: 1500px;
@@ -210,7 +213,7 @@
             rows.forEach(row => {
                 htmlContent += '<tr>';
                 selectedColumns.forEach(col => {
-                    htmlContent += `<td>${row[col] || ''}</td>`;
+                    htmlContent += `<td>${row[col] !== undefined && row[col] !== null ? row[col] : ''}</td>`;
                 });
                 htmlContent += '</tr>';
             });

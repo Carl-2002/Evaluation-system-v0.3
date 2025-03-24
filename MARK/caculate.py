@@ -1,8 +1,21 @@
+import re
 import jieba
 import random
 import pandas as pd
 from rouge_chinese import Rouge
 from nltk.translate.bleu_score import sentence_bleu
+
+def count_characters(text):
+    # 匹配汉字和英文单词
+    chinese_chars = re.findall(r'[\u4e00-\u9fff]', str(text))  # 匹配所有汉字
+    english_words = re.findall(r'[a-zA-Z]+', str(text))       # 匹配所有英文单词
+    
+    # 统计汉字数量和英文单词数量
+    chinese_count = len(chinese_chars)
+    english_count = len(english_words)
+    
+    # 总字数 = 汉字数量 + 英文单词数量
+    return chinese_count + english_count
 
 def calculate_and_save_stats(file_path):
     xls = pd.ExcelFile(file_path)
@@ -28,7 +41,7 @@ def calculate_and_save_stats(file_path):
     # 计算每个组合的综合得分
     num_score_columns = len(score_columns)
     grouped['综合得分'] = (
-        sum(grouped[f'mean_{col}'] for col in score_columns) / num_score_columns * 20  # 平均分部分
+        sum(grouped[f'mean_{col}'] for col in score_columns) / num_score_columns / 5 * 100  # 平均分部分
         - abs(grouped['mean_字数(模型答案)'] - 500) * 0.05  # 字数偏离部分
     )
 
