@@ -4,7 +4,7 @@ import time
 from dotenv import load_dotenv
 from openai import OpenAI
 
-def chat(query, reference, dropdown, conversation_history):
+def chat(query, reference, dropdown, conversation_history): # 对话
     load_dotenv()
     api_key = os.getenv(dropdown + '_KEY')
     base_url = os.getenv(dropdown + '_URL')
@@ -30,7 +30,7 @@ def chat(query, reference, dropdown, conversation_history):
     completion = client.chat.completions.create(
         model=model_name,
         messages=messages,
-        temperature=0.3,
+        temperature=0.6,
         stream=False,
     )
     time.sleep(1)

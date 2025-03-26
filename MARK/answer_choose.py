@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 
 from caculate import count_characters
 
-def process_file(file_path, dropdown, socketio, filename, answer_path, tishici):
+def process_file(file_path, dropdown, socketio, filename, answer_path, tishici): # 选择题回答
     df = pd.read_excel(file_path, header=0)  # header=0 表示第一行为列名
 
     if '模型答案(文字题)' in df.columns or '标准答案(文字题)' in df.columns or '问题(文字题)' in df.columns:
@@ -34,6 +34,8 @@ def process_file(file_path, dropdown, socketio, filename, answer_path, tishici):
     
     total_questions = len(df)
     stop_1 = 0
+    t = 0
+
     for index, row in df.iterrows():
         if pd.notna(row['问题(选择题)']) and pd.notna(row['选项A']) and pd.notna(row['选项B']) and pd.isna(row['模型答案(选择题)']) and pd.isna(row['理由']):  
             progress = index / total_questions * 100
@@ -66,8 +68,14 @@ def process_file(file_path, dropdown, socketio, filename, answer_path, tishici):
             df.at[index, '理由'] = str(liyou)
             df.at[index, '字数(理由)'] = count_characters(liyou)
             if think is not None:
+                df['回答THINK'] = df['回答THINK'].astype(str)
                 df.at[index, '回答THINK'] = str(think)
                 df.at[index, '字数(回答THINK)'] = count_characters(think)
+
+            t = t + 1
+            if t % 25 == 0:
+                df.to_excel(answer_path, sheet_name='数据', index=False)
+                print("当前阶段已保存!")
         else:
             error_message = f"文件格式: 第 {index + 1} 行数据不正确。"
             socketio.emit('error_1', {'message': error_message})
@@ -95,7 +103,7 @@ def choose(query, A, B, C, D, reference, client, model_name, tishici):
         {"role": "user", "content": f"问题是: {query}\n选项A: {A}\n选项B: {B}\n选项C: {C}\n选项D: {D}\n请根据上述标准作答：" },
         {"role": "user", "content": reference_text},
         ],
-        temperature=0.5,
+        temperature=0.6,
         stream=False,
     )
     time.sleep(1)
@@ -103,8 +111,6 @@ def choose(query, A, B, C, D, reference, client, model_name, tishici):
     result = completion.choices[0].message.content
     
     reasoning = getattr(completion.choices[0].message, "reasoning_content", None)
-    print(result)
-    
     pattern = r'<think>(.*?)</think>'
     match = re.search(pattern, result, re.DOTALL)
     if match:

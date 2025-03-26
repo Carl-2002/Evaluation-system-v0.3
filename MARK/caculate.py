@@ -5,7 +5,7 @@ import pandas as pd
 from rouge_chinese import Rouge
 from nltk.translate.bleu_score import sentence_bleu
 
-def count_characters(text):
+def count_characters(text): # 计算回答的字数
     # 匹配汉字和英文单词
     chinese_chars = re.findall(r'[\u4e00-\u9fff]', str(text))  # 匹配所有汉字
     english_words = re.findall(r'[a-zA-Z]+', str(text))       # 匹配所有英文单词
@@ -17,14 +17,16 @@ def count_characters(text):
     # 总字数 = 汉字数量 + 英文单词数量
     return chinese_count + english_count
 
-def calculate_and_save_stats(file_path):
+def calculate_and_save_stats(file_path, socketio): # 计算评测数据并排名
     xls = pd.ExcelFile(file_path)
     df = pd.read_excel(xls, sheet_name=0)
 
     # 动态识别包含“分数”字样的列
     score_columns = [col for col in df.columns if '分数' in col]
     if not score_columns:
-        raise ValueError("Excel文件中没有找到包含“分数”字样的列。")
+        error_message = "Excel文件中没有找到包含“分数”字样的列!"
+        socketio.emit('error_2', {'message': error_message})
+        raise ValueError(error_message)
 
     # 计算每个组合的平均分数、中位数、标准差，以及字数的统计量
     grouped = df.groupby(['提示词', '模型名称']).agg({
@@ -53,70 +55,74 @@ def calculate_and_save_stats(file_path):
         sorted_grouped.to_excel(writer, sheet_name='统计', index=False)
 
 
-def calculate_bleu_and_rouge(file_path):
-    xls = pd.ExcelFile(file_path)
-    df = pd.read_excel(xls, sheet_name=0)
+def calculate_bleu_and_rouge(file_path, socketio): # 如果标准答案存在，画图
+    try:
+        xls = pd.ExcelFile(file_path)
+        df = pd.read_excel(xls, sheet_name=0)
 
-    grouped = df.groupby(['提示词', '模型名称'])[['标准答案(文字题)', '模型答案(文字题)']].apply(
-        lambda group: {
-            '标准答案列表': group['标准答案(文字题)'].tolist(),  # 提取标准答案列并转为列表
-            '模型答案列表': group['模型答案(文字题)'].tolist()   # 提取模型答案列并转为列表
-        }
-    ).reset_index(name='答案列表')
+        grouped = df.groupby(['提示词', '模型名称'])[['标准答案(文字题)', '模型答案(文字题)']].apply(
+            lambda group: {
+                '标准答案列表': group['标准答案(文字题)'].tolist(),  # 提取标准答案列并转为列表
+                '模型答案列表': group['模型答案(文字题)'].tolist()   # 提取模型答案列并转为列表
+            }
+        ).reset_index(name='答案列表')
 
-    grouped[['标准答案列表', '模型答案列表']] = grouped['答案列表'].apply(pd.Series)
-    grouped = grouped.drop(columns=['答案列表'])
+        grouped[['标准答案列表', '模型答案列表']] = grouped['答案列表'].apply(pd.Series)
+        grouped = grouped.drop(columns=['答案列表'])
 
-    bleu_scores_list = []
-    rouge_scores_list = []
+        bleu_scores_list = []
+        rouge_scores_list = []
 
-    for index, row in grouped.iterrows():
-        prompt = row['提示词']
-        model_name = row['模型名称']
-        standard_answers = row['标准答案列表']
-        model_answers = row['模型答案列表']
+        for index, row in grouped.iterrows():
+            prompt = row['提示词']
+            model_name = row['模型名称']
+            standard_answers = row['标准答案列表']
+            model_answers = row['模型答案列表']
 
-        rouge = calculate_rouge_scores(model_answers, standard_answers)
+            rouge = calculate_rouge_scores(model_answers, standard_answers)
 
-        number = len(standard_answers)
-        if number > 10:
-            result_list = random.sample(range(number), 10)
-        else:
-            result_list = list(range(number))
+            number = len(standard_answers)
+            if number > 10:
+                result_list = random.sample(range(number), 10)
+            else:
+                result_list = list(range(number))
 
-        bleu_scores = []
-        for i in result_list:
-            bleu_score = bleu(standard_answers[i], model_answers[i])
-            bleu_scores.append(bleu_score)
+            bleu_scores = []
+            for i in result_list:
+                bleu_score = bleu(standard_answers[i], model_answers[i])
+                bleu_scores.append(bleu_score)
 
-        avg_bleu_scores = [sum(score)/len(bleu_scores) for score in zip(*bleu_scores)]
+            avg_bleu_scores = [sum(score)/len(bleu_scores) for score in zip(*bleu_scores)]
 
-        bleu_scores_list.append(avg_bleu_scores)
-        rouge_scores_list.append(rouge)
+            bleu_scores_list.append(avg_bleu_scores)
+            rouge_scores_list.append(rouge)
 
-    # 将 BLEU 和 ROUGE 分数添加到数据框中
-    grouped['BLEU-1'] = [score[0] for score in bleu_scores_list]
-    grouped['BLEU-2'] = [score[1] for score in bleu_scores_list]
-    grouped['BLEU-3'] = [score[2] for score in bleu_scores_list]
-    grouped['BLEU-4'] = [score[3] for score in bleu_scores_list]
+        # 将 BLEU 和 ROUGE 分数添加到数据框中
+        grouped['BLEU-1'] = [score[0] for score in bleu_scores_list]
+        grouped['BLEU-2'] = [score[1] for score in bleu_scores_list]
+        grouped['BLEU-3'] = [score[2] for score in bleu_scores_list]
+        grouped['BLEU-4'] = [score[3] for score in bleu_scores_list]
 
-    grouped['ROUGE-1-r'] = [score['rouge-1']['r'] for score in rouge_scores_list]
-    grouped['ROUGE-1-p'] = [score['rouge-1']['p'] for score in rouge_scores_list]
-    grouped['ROUGE-1-f'] = [score['rouge-1']['f'] for score in rouge_scores_list]
-    grouped['ROUGE-2-r'] = [score['rouge-2']['r'] for score in rouge_scores_list]
-    grouped['ROUGE-2-p'] = [score['rouge-2']['p'] for score in rouge_scores_list]
-    grouped['ROUGE-2-f'] = [score['rouge-2']['f'] for score in rouge_scores_list]
-    grouped['ROUGE-L-r'] = [score['rouge-l']['r'] for score in rouge_scores_list]
-    grouped['ROUGE-L-p'] = [score['rouge-l']['p'] for score in rouge_scores_list]
-    grouped['ROUGE-L-f'] = [score['rouge-l']['f'] for score in rouge_scores_list]
+        grouped['ROUGE-1-r'] = [score['rouge-1']['r'] for score in rouge_scores_list]
+        grouped['ROUGE-1-p'] = [score['rouge-1']['p'] for score in rouge_scores_list]
+        grouped['ROUGE-1-f'] = [score['rouge-1']['f'] for score in rouge_scores_list]
+        grouped['ROUGE-2-r'] = [score['rouge-2']['r'] for score in rouge_scores_list]
+        grouped['ROUGE-2-p'] = [score['rouge-2']['p'] for score in rouge_scores_list]
+        grouped['ROUGE-2-f'] = [score['rouge-2']['f'] for score in rouge_scores_list]
+        grouped['ROUGE-L-r'] = [score['rouge-l']['r'] for score in rouge_scores_list]
+        grouped['ROUGE-L-p'] = [score['rouge-l']['p'] for score in rouge_scores_list]
+        grouped['ROUGE-L-f'] = [score['rouge-l']['f'] for score in rouge_scores_list]
 
-    grouped = grouped.drop(columns=['标准答案列表', '模型答案列表'])
-    print(grouped)
+        grouped = grouped.drop(columns=['标准答案列表', '模型答案列表'])
+        print(grouped)
 
-    # 保存数据到 Excel
-    with pd.ExcelWriter(file_path, engine='openpyxl', mode='a', if_sheet_exists='replace') as writer:
-        grouped.to_excel(writer, sheet_name='指标', index=False)
-
+        # 保存数据到 Excel
+        with pd.ExcelWriter(file_path, engine='openpyxl', mode='a', if_sheet_exists='replace') as writer:
+            grouped.to_excel(writer, sheet_name='指标', index=False)
+    except:
+        error_message = "画图过程中出现错误，请检查!"
+        socketio.emit('error_2', {'message': error_message})
+        raise ValueError(error_message)
 
 def bleu(target, inference):
     target_fenci = ' '.join(jieba.cut(target))

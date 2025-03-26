@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" href="/static/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>人工评分</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/antd/4.23.6/antd.min.css" />
+    <style>
+        body {
+            background-color: #f4f4f9;
+        }
+        .container {
+            width: 100%;
+            max-width: 1500px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        h1 {
+            text-align: center;
+            font-size: 24px;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            text-align: left;
+            word-wrap: break-word;
+            max-width: 1000px;
+            white-space: normal;
+        }
+        th {
+            background-color: #f2f2f2;
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+        button {
+            padding: 5px 10px;
+            margin: 10px 5px;
+            font-size: 16px;
+            color: #fff;
+            background-color: #007bff;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:active {
+            transform: scale(0.98);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 id="reportTitle"></h1>
+        <div id="content">
+            <!-- 上一条和下一条按钮 -->
+            <div style="margin-top: 2px;">
+                <button id="prevButton">上一条</button>
+                <button id="nextButton">下一条</button>
+            </div>
+            <!-- 显示当前行内容 -->
+            <table id="currentRowTable" border="1">
+                <thead>
+                    <tr id="tableHeader"></tr>
+                </thead>
+                <tbody>
+                    <tr id="currentRow"></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // 定义全局变量存储后端数据
+        let data = null;
+        let currentIndex = 0; // 当前显示的行索引
+        let totalRows = 0; // 总行数
+
+        // 获取 URL 参数中的文件名
+        const urlParams = new URLSearchParams(window.location.search);
+        const filename = urlParams.get('filename');
+        document.querySelector('#reportTitle').innerText = `人工评分(暂未支持)：${filename || '未提供文件名'}`;
+
+        if (!filename) {
+            document.getElementById('content').innerHTML = '<p>未提供文件名</p>';
+        } else {
+            // 初始化加载数据
+            fetchData(currentIndex);
+        }
+
+        // 获取后端数据
+        function fetchData(index) {
+            fetch(`/mark_content?filename=${encodeURIComponent(filename)}&row_index=${index}`)
+                .then(response => response.json())
+                .then(responseData => {
+                    if (responseData.message) {
+                        // 如果后端返回错误信息
+                        document.getElementById('content').innerHTML = `<p>${responseData.message}</p>`;
+                    } else {
+                        // 更新全局变量
+                        data = responseData.current_row;
+                        currentIndex = responseData.current_index;
+                        totalRows = responseData.total_rows;
+
+                        // 渲染表格
+                        renderRow(data);
+
+                        // 更新按钮状态
+                        updateButtonState();
+                    }
+                })
+        }
+
+        function renderRow(rowData, columnsOrder) {
+            const tableHeader = document.getElementById('tableHeader');
+            const currentRow = document.getElementById('currentRow');
+
+            // 清空表头和内容
+            tableHeader.innerHTML = '';
+            currentRow.innerHTML = '';
+
+            // 动态生成表头和内容，按照列名顺序
+            columnsOrder.forEach(col => {
+                const th = document.createElement('th');
+                th.textContent = col;
+                tableHeader.appendChild(th);
+
+                const td = document.createElement('td');
+                td.textContent = rowData[col] || ''; // 确保空值显示为空字符串
+                currentRow.appendChild(td);
+            });
+        }
+
+        // 获取后端数据
+        function fetchData(index) {
+            fetch(`/mark_content?filename=${encodeURIComponent(filename)}&row_index=${index}`)
+                .then(response => response.json())
+                .then(responseData => {
+                    if (responseData.message) {
+                        // 如果后端返回错误信息
+                        document.getElementById('content').innerHTML = `<p>${responseData.message}</p>`;
+                    } else {
+                        // 更新全局变量
+                        data = responseData.current_row;
+                        currentIndex = responseData.current_index;
+                        totalRows = responseData.total_rows;
+
+                        // 渲染表格，传入列名顺序
+                        renderRow(data, responseData.columns_order);
+
+                        // 更新按钮状态
+                        updateButtonState();
+                    }
+                })
+                .catch(error => {
+                    document.getElementById('content').innerHTML = `<p>加载失败: ${error.message}</p>`;
+                });
+        }
+
+        // 更新按钮状态
+        function updateButtonState() {
+            const prevButton = document.getElementById('prevButton');
+            const nextButton = document.getElementById('nextButton');
+
+            prevButton.disabled = currentIndex === 0;
+            nextButton.disabled = currentIndex === totalRows - 1;
+        }
+
+        // 上一条按钮点击事件
+        document.getElementById('prevButton').addEventListener('click', () => {
+            if (currentIndex > 0) {
+                currentIndex--;
+                fetchData(currentIndex);
+            }
+        });
+
+        // 下一条按钮点击事件
+        document.getElementById('nextButton').addEventListener('click', () => {
+            if (currentIndex < totalRows - 1) {
+                currentIndex++;
+                fetchData(currentIndex);
+            }
+        });
+    </script>
+</body>
+</html>

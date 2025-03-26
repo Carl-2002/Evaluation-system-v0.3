@@ -3,3 +3,4 @@ QWEN
 DEEPSEEK
 deepseek-v3
 deepseek-r1
+Qwen2.5-7B-Instruct

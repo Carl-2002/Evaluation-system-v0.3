@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 
 from caculate import count_characters
 
-def process_file_free(file_path, dropdown, socketio, filename, answer_path, matches):  
+def process_file_free(file_path, dropdown, socketio, filename, answer_path, matches):  # 文字题回答
     df = pd.read_excel(file_path, header=0)  # header=0 表示第一行为列名
 
     if '选项A' in df.columns or '问题(选择题)' in df.columns or '模型答案(选择题)' in df.columns:
@@ -82,6 +82,10 @@ def process_file_free(file_path, dropdown, socketio, filename, answer_path, matc
                     df.loc[t, '字数(回答THINK)'] = count_characters(think)
 
                 t = t + 1
+
+                if t % 25 == 0:
+                    df.to_excel(answer_path, sheet_name='数据', index=False)
+                    print("当前阶段已保存!")
 
     df.to_excel(answer_path, sheet_name='数据', index=False)
     socketio.emit('progress_1', {'filename': filename, 'progress': 100})
@@ -165,6 +169,10 @@ def process_file_solid(file_path, dropdown, socketio, filename, answer_path, res
 
             t = t + 1
 
+            if t % 25 == 0:
+                df.to_excel(answer_path, sheet_name='数据', index=False)
+                print("当前阶段已保存!")
+
     df.to_excel(answer_path, sheet_name='数据', index=False)
     socketio.emit('progress_1', {'filename': filename, 'progress': 100})
     socketio.emit('status_1', {'message': '回答成功!'})
@@ -183,7 +191,7 @@ def chat(query, reference, client, model_name, tishici):
             {"role": "user", "content": query },
             {"role": "user", "content": reference_text},
         ],
-        temperature=0.5,
+        temperature=0.6,
         stream=False,
     )
     time.sleep(1)

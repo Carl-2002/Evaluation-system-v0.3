@@ -1,6 +1,6 @@
 import pandas as pd
 
-def evaluate_answers(file_path, socketio, evaluation_path):
+def evaluate_answers(file_path, socketio, evaluation_path): # 选择题评测，只匹配答案是否相同，不调用模型
     df = pd.read_excel(file_path, header=0)
     
     if '模型答案(文字题)' in df.columns or '标准答案(文字题)' in df.columns or '问题(文字题)' in df.columns:

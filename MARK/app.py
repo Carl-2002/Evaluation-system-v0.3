@@ -15,6 +15,7 @@ import answer_text
 import answer_choose
 import evaluate_text
 import evaluate_choose
+import evaluate_man
 import talk
 
 app = Flask(__name__)
@@ -34,10 +35,11 @@ os.makedirs(ANSWER_FOLDER, exist_ok=True)
 os.makedirs(EVALUATION_FOLDER, exist_ok=True)
 os.makedirs(TISHI_FOLDER, exist_ok=True)
 
-progress_1 = {}
+progress_1 = {} # 页面的进度条信息
 progress_2 = {}
+progress_3 = {}
 
-def get_folder_files(folder):
+def get_folder_files(folder): # 操作文件
     files_info = []
     for filename in os.listdir(folder):
         file_path = os.path.join(folder, filename)
@@ -65,7 +67,7 @@ def get_tishi_file(tishi_filename, socketio, number):
         socketio.emit('error_{}'.format(number), {'message': error_message})
         raise ValueError(error_message)
 
-def check_keys_match(result_dict, dropdown2, socketio, number):
+def check_keys_match(result_dict, dropdown2, socketio, number): # 检查提示词和模型是否匹配
     keys = set(result_dict.keys())
     dropdown_set = set(dropdown2)
     if not dropdown_set.issubset(keys):
@@ -73,7 +75,7 @@ def check_keys_match(result_dict, dropdown2, socketio, number):
         socketio.emit('error_{}'.format(number), {'message': error_message})
         raise ValueError(error_message)
 
-@app.route('/get_models')
+@app.route('/get_models') # config.txt读取模型列表
 def get_models():
     with open('config.txt', 'r') as file:
         box = [line.strip() for line in file]
@@ -86,6 +88,14 @@ def hello_world():
 @app.route("/duihua")
 def duihua():
     return render_template('duihua.html')
+
+@app.route("/artifical")
+def artifical():
+    return render_template('artifical.html')
+
+@app.route("/artifical_mark")
+def artifical_mark():
+    return render_template('/artifical_mark.html')
 
 @app.route("/tishi")
 def tishi():
@@ -187,7 +197,7 @@ def delete(filename):
     os.remove(file_path)
     return jsonify({'message': '文件删除成功'})
 
-@app.route('/submit_evaluation', methods=['POST'])
+@app.route('/submit_evaluation', methods=['POST']) # 模型评测
 def submit_evaluation():
     data = request.get_json()
     dropdown1 = data.get('dropdown1')
@@ -216,7 +226,7 @@ def submit_evaluation():
             use_general_algorithm = False
             evaluation_suffix = "_tr"
         
-        evaluation_path = os.path.join(EVALUATION_FOLDER, f"{base_filename}_{random.randint(600, 999)}独立{evaluation_suffix}.xlsx")
+        evaluation_path = os.path.join(EVALUATION_FOLDER, f"{base_filename}_{random.randint(600, 899)}独立{evaluation_suffix}.xlsx") # 随机数以区分文件，100-599为回答，600-899为评测，900-999为人工
         evaluate_text.process_file(file_path, dropdown2, socketio, dropdown1, evaluation_path, tishici, use_general_algorithm)
         return jsonify({'message': '成功!'}), 202
     elif dropdown3 == "text_more":
@@ -242,7 +252,7 @@ def submit_evaluation():
             use_general_algorithm = False
             evaluation_suffix = "_tr"
         
-        evaluation_path = os.path.join(EVALUATION_FOLDER, f"{base_filename}_{random.randint(600, 999)}固定{evaluation_suffix}.xlsx")
+        evaluation_path = os.path.join(EVALUATION_FOLDER, f"{base_filename}_{random.randint(600, 899)}固定{evaluation_suffix}.xlsx")
         evaluate_text.process_file_solid(file_path, dropdown2, socketio, dropdown1, evaluation_path, result_dict, use_general_algorithm)
         return jsonify({'message': '成功!'}), 202
     elif dropdown3 == "choose":
@@ -253,7 +263,7 @@ def submit_evaluation():
     else:
         return jsonify({'message': '当前评测不支持'}), 400
 
-@app.route('/submit_answer', methods=['POST'])
+@app.route('/submit_answer', methods=['POST']) # 模型回答
 def submit_answer():
     data = request.get_json()
     dropdown1 = data.get('dropdown1')
@@ -309,7 +319,85 @@ def submit_answer():
         answer_choose.process_file(file_path, dropdown2[0], socketio, dropdown1, answer_path, tishici)
         return jsonify({'message': '成功!'}), 202
 
-@app.route('/get_content')
+@app.route('/artifical_evaluation', methods=['POST']) # 人工评测
+def artifical_evaluation():
+    data = request.get_json()
+    dropdown1 = data.get('dropdown1')
+    dropdown2 = data.get('dropdown2') 
+    dropdown3 = data.get('dropdown3')
+
+    if not (dropdown1 and dropdown2 and dropdown3):
+        error_message = "请选择所有选项"
+        socketio.emit('error_3', {'message': error_message})
+        raise ValueError(error_message)  # 抛出异常以停止程序
+    
+    base_filename = os.path.splitext(dropdown1)[0]
+    file_path = os.path.join(UPLOAD_FOLDER, dropdown1)
+    if not os.path.exists(file_path):
+        file_path = os.path.join(ANSWER_FOLDER, dropdown1)
+    
+    if dropdown3 == "caculate" and dropdown2 == "score_test":
+        evaluation_suffix = "_tr"
+        evaluation_path = os.path.join(EVALUATION_FOLDER, f"{base_filename}_{random.randint(900, 999)}计算{evaluation_suffix}.xlsx")
+        evaluate_man.caculate_score(file_path, evaluation_path, socketio)
+        return jsonify({'message': '成功!'}), 202
+    elif dropdown3 == "score" and dropdown2 == "score_test":
+        socketio.emit('status_3', {'message': '成功打开网页!'})
+        redirect_url = f"/artifical_mark?filename={dropdown1}"
+        return jsonify({'message': '成功!', 'url': redirect_url}), 202
+    else:
+        error_message = "当前评测不支持"
+        socketio.emit('error_3', {'message': error_message})
+        raise ValueError(error_message)  # 抛出异常以停止程序
+        return jsonify({'message': '成功!'}), 400
+
+@app.route('/mark_content') # 人工评测
+def mark_content():
+    # 获取文件名参数
+    filename = request.args.get('filename')
+    row_index = int(request.args.get('row_index', 0))  # 当前行索引，默认从第0行开始
+
+    file_path = os.path.join(EVALUATION_FOLDER, filename)
+    if not os.path.exists(file_path):
+        file_path = os.path.join(ANSWER_FOLDER, filename)
+        if not os.path.exists(file_path):
+            file_path = os.path.join(UPLOAD_FOLDER, filename)
+            if not os.path.exists(file_path):
+                return jsonify({'message': '文件不存在'}), 404
+
+    try:
+        with pd.ExcelFile(file_path) as excel_data:
+            # 只处理第一个Sheet
+            sheet_name = excel_data.sheet_names[0]
+            df = excel_data.parse(sheet_name).fillna("无")
+
+            # 获取总行数和列名顺序
+            total_rows = len(df)
+            columns_order = df.columns.tolist()
+
+            # 确保当前行索引在有效范围内
+            if row_index < 0 or row_index >= total_rows:
+                return jsonify({'message': '无效的行索引'}), 400
+
+            # 提取当前行数据并按列名顺序排列
+            current_row = df.iloc[row_index].to_dict()
+            ordered_current_row = {col: current_row[col] for col in columns_order}
+
+            return jsonify({
+                'filename': filename,
+                'sheet_name': sheet_name,
+                'current_row': ordered_current_row,
+                'columns_order': columns_order,  # 返回列名顺序
+                'total_rows': total_rows,
+                'current_index': row_index
+            })
+
+    except PermissionError:
+        return jsonify({'message': '文件被占用，请关闭其他程序后再试'}), 500
+    except Exception as e:
+        return jsonify({'message': f'读取文件失败: {str(e)}'}), 500
+
+@app.route('/get_content') # show.html路由
 def get_content():
     # 获取文件名参数
     filename = request.args.get('filename')
@@ -357,7 +445,7 @@ def get_content():
     except Exception as e:
         return jsonify({'message': f'读取文件失败: {str(e)}'}), 500
 
-@app.route('/draw_picture')
+@app.route('/draw_picture') # 画图（提取数据）
 def draw_picture():
     filename = request.args.get('filename')
     file_path = os.path.join(EVALUATION_FOLDER, filename)
@@ -385,7 +473,7 @@ def draw_picture():
     
     return jsonify(data_list)
 
-@app.route('/read_tishi_file', methods=['GET'])
+@app.route('/read_tishi_file', methods=['GET']) # 加载提示词
 def read_tishi_file():
     filename = request.args.get('filename')
     file_path = os.path.join(TISHI_FOLDER, filename)
@@ -398,7 +486,7 @@ def read_tishi_file():
 
     return jsonify({'content': content})
 
-@app.route('/save_tishi_file', methods=['POST'])
+@app.route('/save_tishi_file', methods=['POST']) # 保存提示词
 def save_tishi_file():
     data = request.get_json()
     filename = data.get('filename')
@@ -414,7 +502,7 @@ def save_tishi_file():
 
     return jsonify({'message': '文件保存成功'})
 
-@app.route('/chat', methods=['POST'])
+@app.route('/chat', methods=['POST']) # 对话
 def handle_chat():
     data = request.get_json()
     query = data.get('query')

@@ -7,7 +7,7 @@ from evaluate_model import chat
 from caculate import calculate_bleu_and_rouge
 from caculate import calculate_and_save_stats
 
-def process_file(file_path, dropdown, socketio, filename, evaluation_path, tishici, use_general_algorithm):
+def process_file(file_path, dropdown, socketio, filename, evaluation_path, tishici, use_general_algorithm): # 文字题评测
     df = pd.read_excel(file_path, header=0)  # header=0 表示第一行为列名
     
     if '选项A' in df.columns or '模型答案(选择题)' in df.columns or '问题(选择题)' in df.columns:
@@ -66,12 +66,17 @@ def process_file(file_path, dropdown, socketio, filename, evaluation_path, tishi
                     stop_1 = 1
                 
                 df[reason_col] = df[reason_col].astype(str)
-                df[think_col] = df[think_col].astype(str)
                 df.at[index, score_col] = fenshu
                 df.at[index, reason_col] = str(reason)
-                df.at[index, think_col] = str(think)
+                if think is not None:
+                    df[think_col] = df[think_col].astype(str)
+                    df.at[index, think_col] = str(think)
     
-                t = t + 1        
+                t = t + 1   
+
+                if t % 25 == 0:
+                    df.to_excel(evaluation_path, sheet_name='数据', index=False)
+                    print("当前阶段已保存!")     
             else:
                 error_message = f"文件格式错误: 第 {index + 1} 行数据不正确。"    
                 socketio.emit('error_2', {'message': error_message})
@@ -81,10 +86,10 @@ def process_file(file_path, dropdown, socketio, filename, evaluation_path, tishi
     df.to_excel(evaluation_path, sheet_name='数据', index=False)
     
     socketio.emit('status_2', {'message': '正在计算通用模型参数......'})
-    calculate_and_save_stats(evaluation_path)
+    calculate_and_save_stats(evaluation_path, socketio)
     
     if use_general_algorithm:
-        calculate_bleu_and_rouge(evaluation_path)
+        calculate_bleu_and_rouge(evaluation_path, socketio)
     
     if stop_1 == 1:  # 如果有停止标志，则发送停止信号
         socketio.emit('status_2', {'message': '评测中有错误，请检查结果!'})
@@ -154,12 +159,17 @@ def process_file_solid(file_path, dropdown, socketio, filename, evaluation_path,
                     stop_1 = 1
                 
                 df[reason_col] = df[reason_col].astype(str)
-                df[think_col] = df[think_col].astype(str)
                 df.at[index, score_col] = fenshu
                 df.at[index, reason_col] = str(reason)
-                df.at[index, think_col] = str(think)
+                if think is not None:
+                    df[think_col] = df[think_col].astype(str)
+                    df.at[index, think_col] = str(think)
     
                 t = t + 1
+
+                if t % 25 == 0:
+                    df.to_excel(evaluation_path, sheet_name='数据', index=False)
+                    print("当前阶段已保存!") 
             else:
                 error_message = f"文件格式错误: 第 {index + 1} 行数据不正确。"    
                 socketio.emit('error_2', {'message': error_message})
@@ -169,10 +179,10 @@ def process_file_solid(file_path, dropdown, socketio, filename, evaluation_path,
     df.to_excel(evaluation_path, sheet_name='数据', index=False)
     
     socketio.emit('status_2', {'message': '正在计算通用模型参数......'})
-    calculate_and_save_stats(evaluation_path)
+    calculate_and_save_stats(evaluation_path, socketio)
     
     if use_general_algorithm:
-        calculate_bleu_and_rouge(evaluation_path)
+        calculate_bleu_and_rouge(evaluation_path, socketio)
     
     if stop_1 == 1:  # 如果有停止标志，则发送停止信号
         socketio.emit('status_2', {'message': '评测中有错误，请检查结果!'})

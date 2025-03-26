@@ -4,7 +4,7 @@ import time
 from openai import OpenAI
 from dotenv import load_dotenv
 
-def chat(query, reference, answer, dropdown, tishici):
+def chat(query, reference, answer, dropdown, tishici): # 文字题评测中调用模型的部分
     load_dotenv()
     api_key = os.getenv(dropdown+'_KEY')
     base_url = os.getenv(dropdown+'_URL')
@@ -27,14 +27,14 @@ def chat(query, reference, answer, dropdown, tishici):
         {"role": "user", "content": f"问题是:{query}\n答案是:{answer}"},
         {"role": "user", "content": reference_text},
         ],
-        temperature=0.5,
+        temperature=0.6,
         stream=False,
     )
     time.sleep(1)
     
     result = completion.choices[0].message.content
+    
     reasoning = getattr(completion.choices[0].message, "reasoning_content", None)
-
     pattern = r'<think>(.*?)</think>'
     match = re.search(pattern, result, re.DOTALL)
 

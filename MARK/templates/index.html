@@ -60,28 +60,29 @@
         <button class="btn btn-primary" onclick="location.href='/answer'">模型回答</button>
         <button class="btn btn-primary" onclick="location.href='/answer_list'">回答结果</button>
         <button class="btn btn-primary" onclick="location.href='/evaluation'">模型评测</button>
+        <button class="btn btn-primary" onclick="location.href='/artifical'">人工评测</button>
         <button class="btn btn-primary" onclick="location.href='/result'">评测结果</button>
-        <button class="btn btn-danger exit-button" onclick="exitSystem()">退出系统</button>
     </div>
 
     <div class="content">
-        <h1>欢迎来到大语言模型测试系统！(v0.5)</h1>
-        <h2>2025.03.24</h2>
+        <h1>欢迎来到大语言模型测试系统!(v0.6)</h1>
+        <h2>2025.03.26</h2>
         <p>‌
-        此系统能够调用您的大语言模型自动化回答问题并对回答作出评判。此版本进行了大量更新，部分内容已然有了全新面貌。
+        <br>
+        全新版本上线！本系统利用大型语言模型自动回答问题，并对答案进行评估。
         </p>
         <p>
-        本项目使用Flask框架，您可以通过运行app.py文件启用网页。项目所需的库在requirements.txt中，python版本并不十分重要。
+        该项目基于Flask框架，您只需运行app.py文件即可启动网页。所需的库可以在requirements.txt中找到，Python版本要求不严格。
         </p>
         <p>
-        该系统支持多轮模型对话，以及选择题、文字题形式的测试，使用Excel文件读写数据，文件的模板在网页页面下方可见。请您严格按照模板填写内容，避免出现不可预料的错误，谢谢！
-        <p>
-        该系统以文件名区分文件与文件结果，"_t"：文字题结果，"_c"：选择题结果，"_r"：评测结果，"_a"：回答结果。您上传的文件将保存在“上传文件”中(推荐您修改文件名使它们不含前述这些字符)。
+        <br>
+        系统支持多轮对话、提示词调试，以及选择题和文字题的测试，通过Excel文件批量读写数据。文件模板可在网页底部找到，请务必按照模板填写，以避免意外错误。
+        文件与结果以文件名区分，其中"_t"代表文字题结果，"_c"代表选择题结果，"_r"代表评测结果，"_a"代表回答结果，"_d"包含画图结果。您上传的文件将保存在“上传文件”中，建议您修改文件名，避免使用上述字符。
         </p>
         <p>
-        如果您发现任何问题，敬请谅解！
+        在使用本系统前，推荐您阅读页面下方的使用说明。如遇任何问题，敬请谅解！谢谢大家的支持！
         </p>
-        <br><br><br>
+        <br><br>
         <h4>寄蜉蝣于天地，渺沧海之一粟。哀吾生之须臾，羡长江之无穷</h4>
         <h4>与其坐而论道，不如起而行之</h4>
         <h4>和光同尘，与时舒卷，戢鳞潜翼，思属风云</h4>
