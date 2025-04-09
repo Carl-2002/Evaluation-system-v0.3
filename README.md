@@ -2,7 +2,7 @@
 
 **2025.04.09**
 
-A brand new version is now live! This system uses a large language model to automatically answer questions and evaluate those answers.
+A brand new version is now live! This system uses large language models to automatically answer questions and evaluate those answers.
 
 ## Usage Instructions
 
