@@ -47,14 +47,13 @@ def process_file(file_path, dropdown, socketio, filename, evaluation_path, tishi
                 a = True
             
             if a and pd.notna(row['问题(文字题)']) and pd.notna(row['模型答案(文字题)']): 
-                if pd.notna(row['参考']):
-                    reference = row['参考']
-                else:
-                    reference = None
+                
+                reference = row['参考'] if pd.notna(row['参考']) else None
+                ref_answer = row['标准答案(文字题)'] if pd.notna(row['标准答案(文字题)']) else None
             
                 question = row['问题(文字题)']
                 answer = row['模型答案(文字题)']
-                fenshu, reason, stop, think = chat(question, reference, answer, model, tishici)
+                fenshu, reason, stop, think = chat(question, reference, answer, ref_answer, model, tishici)
                 print("####################")
                 print(fenshu)
                 print("$$$$$$$$$$$$$$$$$$$$")
@@ -65,8 +64,8 @@ def process_file(file_path, dropdown, socketio, filename, evaluation_path, tishi
                 if stop == 1:
                     stop_1 = 1
                 
-                df[reason_col] = df[reason_col].astype(str)
                 df.at[index, score_col] = fenshu
+                df[reason_col] = df[reason_col].astype(str)
                 df.at[index, reason_col] = str(reason)
                 if think is not None:
                     df[think_col] = df[think_col].astype(str)
@@ -140,14 +139,13 @@ def process_file_solid(file_path, dropdown, socketio, filename, evaluation_path,
                 a = True
             
             if a and pd.notna(row['问题(文字题)']) and pd.notna(row['模型答案(文字题)']): 
-                if pd.notna(row['参考']):
-                    reference = row['参考']
-                else:
-                    reference = None
+                
+                reference = row['参考'] if pd.notna(row['参考']) else None
+                ref_answer = row['标准答案(文字题)'] if pd.notna(row['标准答案(文字题)']) else None
             
                 question = row['问题(文字题)']
                 answer = row['模型答案(文字题)']
-                fenshu, reason, stop, think = chat(question, reference, answer, model, tishici)
+                fenshu, reason, stop, think = chat(question, reference, answer, ref_answer, model, tishici)
                 print("####################")
                 print(fenshu)
                 print("$$$$$$$$$$$$$$$$$$$$")
@@ -158,8 +156,8 @@ def process_file_solid(file_path, dropdown, socketio, filename, evaluation_path,
                 if stop == 1:
                     stop_1 = 1
                 
-                df[reason_col] = df[reason_col].astype(str)
                 df.at[index, score_col] = fenshu
+                df[reason_col] = df[reason_col].astype(str)
                 df.at[index, reason_col] = str(reason)
                 if think is not None:
                     df[think_col] = df[think_col].astype(str)

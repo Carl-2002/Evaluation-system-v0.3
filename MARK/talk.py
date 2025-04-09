@@ -33,20 +33,15 @@ def chat(query, reference, dropdown, conversation_history): # 对话
         temperature=0.6,
         stream=False,
     )
-    time.sleep(1)
-    
     result = completion.choices[0].message.content
+    conversation_history.append({"role": "assistant", "content": result})
     
     reasoning = getattr(completion.choices[0].message, "reasoning_content", None)
     print(result)
-    
-    # 添加助手消息到对话历史
-    conversation_history.append({"role": "assistant", "content": result})
 
     pattern = r'<think>(.*?)</think>'
     match = re.search(pattern, result, re.DOTALL)
     if match:
         return re.split(r'</think>\s*', result, maxsplit=1, flags=re.DOTALL)[1], match.group(1).strip(), conversation_history
     else:
-        print(reasoning)
         return result, reasoning, conversation_history

@@ -41,10 +41,7 @@ def process_file(file_path, dropdown, socketio, filename, answer_path, tishici):
             progress = index / total_questions * 100
             socketio.emit('progress_1', {'filename': filename, 'progress': progress, 'jindu': '正在回答问题({})'.format(index + 1)})
             
-            if pd.notna(row['参考']):
-                reference = row['参考']
-            else:
-                reference = None
+            reference = row['参考'] if pd.notna(row['参考']) else None
             
             question = row['问题(选择题)']
             A = row['选项A']
@@ -91,17 +88,13 @@ def process_file(file_path, dropdown, socketio, filename, answer_path, tishici):
 
 
 def choose(query, A, B, C, D, reference, client, model_name, tishici):
-    if reference is not None:
-        reference_text = f"你的参考提示:{reference}"
-    else:
-        reference_text = "你没有参考提示。"
+    reference = reference or "无。"
     
     completion = client.chat.completions.create(
         model=model_name,
         messages=[
         {"role": "system", "content": tishici},
-        {"role": "user", "content": f"问题是: {query}\n选项A: {A}\n选项B: {B}\n选项C: {C}\n选项D: {D}\n请根据上述标准作答：" },
-        {"role": "user", "content": reference_text},
+        {"role": "user", "content": f"问题:{query}\n<选项A>{A}\n<选项B>{B}\n<选项C>{C}\n<选项D>{D}\n<参考内容 begin>\n{reference}\n<参考内容 end>"},
         ],
         temperature=0.6,
         stream=False,
@@ -111,6 +104,7 @@ def choose(query, A, B, C, D, reference, client, model_name, tishici):
     result = completion.choices[0].message.content
     
     reasoning = getattr(completion.choices[0].message, "reasoning_content", None)
+    
     pattern = r'<think>(.*?)</think>'
     match = re.search(pattern, result, re.DOTALL)
     if match:

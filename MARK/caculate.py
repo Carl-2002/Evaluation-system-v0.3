@@ -44,7 +44,7 @@ def calculate_and_save_stats(file_path, socketio): # 计算评测数据并排名
     num_score_columns = len(score_columns)
     grouped['综合得分'] = (
         sum(grouped[f'mean_{col}'] for col in score_columns) / num_score_columns / 5 * 100  # 平均分部分
-        - abs(grouped['mean_字数(模型答案)'] - 500) * 0.05  # 字数偏离部分
+        - abs(grouped['mean_字数(模型答案)'] - 600) * 0.02  # 字数偏离部分
     )
 
     sorted_grouped = grouped.sort_values(by='综合得分', ascending=False)

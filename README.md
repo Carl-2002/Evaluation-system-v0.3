@@ -1,6 +1,6 @@
-# Welcome to the Large Language Model Testing System (v0.6)!
+# Welcome to the Large Language Model Testing System (v0.6.1)!
 
-**2025.03.26**
+**2025.04.09**
 
 A brand new version is now live! This system uses a large language model to automatically answer questions and evaluate those answers.
 
@@ -14,9 +14,9 @@ The system supports multi-turn conversations, prompt debugging, as well as testi
 
 Before using this system, we recommend that you read the usage instructions at the bottom of the page. If you encounter any issues, we appreciate your understanding! Thank you all for your support!
 
-# 欢迎来到大语言模型测试系统(v0.6)！
+# 欢迎来到大语言模型测试系统(v0.6.1)！
 
-**2025.03.26**
+**2025.04.09**
 
 全新版本上线！本系统利用大型语言模型自动回答问题，并对答案进行评估。
   

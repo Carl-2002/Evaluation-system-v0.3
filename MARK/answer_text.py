@@ -179,17 +179,13 @@ def process_file_solid(file_path, dropdown, socketio, filename, answer_path, res
 
 
 def chat(query, reference, client, model_name, tishici):
-    if reference is not None:
-        reference_text = f"你的参考提示:{reference}"
-    else:
-        reference_text = "你没有参考提示。"
+    reference = reference or "无。"
    
     completion = client.chat.completions.create(
         model=model_name,
         messages=[
             {"role": "system", "content": tishici},
-            {"role": "user", "content": query },
-            {"role": "user", "content": reference_text},
+            {"role": "user", "content": f"用户输入:{query}\n\n<参考内容 begin>\n{reference}\n<参考内容 end>"},
         ],
         temperature=0.6,
         stream=False,
