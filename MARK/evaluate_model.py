@@ -27,7 +27,7 @@ def chat(query, reference, answer, ref_answer, dropdown, tishici): # 文字题�
         temperature=0.6,
         stream=False,
     )
-    time.sleep(4)
+    time.sleep(5)
     
     result = completion.choices[0].message.content
     reasoning = getattr(completion.choices[0].message, "reasoning_content", None)

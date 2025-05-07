@@ -1,0 +1,1 @@
+软开关 /think 和 /no_think

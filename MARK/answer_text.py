@@ -185,7 +185,7 @@ def chat(query, reference, client, model_name, tishici):
         model=model_name,
         messages=[
             {"role": "system", "content": tishici},
-            {"role": "user", "content": f"用户输入:{query}\n\n<参考内容 begin>\n{reference}\n<参考内容 end>"},
+            {"role": "user", "content": f"{query}\n\n<参考内容 begin>\n{reference}\n<参考内容 end>"},
         ],
         temperature=0.6,
         stream=False,
